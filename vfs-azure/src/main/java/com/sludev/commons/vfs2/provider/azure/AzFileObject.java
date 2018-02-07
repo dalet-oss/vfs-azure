@@ -550,7 +550,7 @@ public class AzFileObject extends AbstractFileObject {
                             }
 
                             if (currBlobProperties == null) {
-                                currBlobProperties = currBlob.getProperties();
+                                currBlobProperties = fileCurrBlob.getProperties();
                             }
 
                             if (currBlobProperties != null) {
