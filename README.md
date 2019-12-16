@@ -1,3 +1,17 @@
+# Dalet fork
+The purpose of this fork is to maintain any changes made by Dalet, until those changes are merged upstream.
+From this fork we publish artifacts to JCenter; instead of `com.sludev.commons:vfs-azure` the artifacts are named
+`com.dalet.sludev.commons:vfs-azure` to make clear their different origin.
+
+## Versioning model
+Since the upstream repository owner seems to be ignoring PRs, we conclude that our fork will remain long-lived.
+On that basis, the versioning model is as follows:
+-  Every push to master gets built, but not published
+-  To publish artifacts, it is necessary to specify a version number by adding an appropriate Git tag to `HEAD` with an
+   appropriate prefix.  For example, tagging HEAD with `release/1.3.8` will cause version `1.3.8` to be published on
+   the next build.
+
+
 # vfs-azure
 Azure provider for Apache Commons VFS - http://commons.apache.org/proper/commons-vfs/
 
