@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    
-    <groupId>com.sludev.commons</groupId>
+
+    <groupId>com.dalet.sludev.commons</groupId>
     <artifactId>vfs-azure</artifactId>
-    <version>1.1</version>
-    
-    <name>${project.groupId}:${project.artifactId}</name>
-    <description>Azure Blob Storage Provider for the Apache Commons VFS library.</description>
-    <url>https://github.com/kervinpierre/vfs-azure</url>
+    <version>${revision}</version>
+
+    <name>com.dalet.sludev.commons:vfs-azure</name>
+    <description>Azure Blob Storage Provider for the Apache Commons VFS library (Dalet fork).</description>
+    <url>https://github.com/dalet-oss/vfs-azure</url>
 
     <licenses>
         <license>
@@ -16,49 +16,57 @@
             <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
         </license>
     </licenses>
-      
+
     <developers>
         <developer>
-            <name>Kervin Pierre</name>
-            <email>kervin@sludev.com</email>
-            <organization>SLU Dev Inc.</organization>
-            <organizationUrl>http://sludev.com</organizationUrl>
+            <name>Ashok Mor</name>
+            <email>amor@dalet.com</email>
         </developer>
     </developers>
-  
+
     <scm>
-        <connection>scm:git:git@github.com:kervinpierre/vfs-azure.git</connection>
-        <developerConnection>scm:git:git@github.com:kervinpierre/vfs-azure.git</developerConnection>
-        <url>https://github.com/kervinpierre/vfs-azure.git</url>
+        <connection>scm:git:git@github.com:dalet-oss/vfs-azure.git</connection>
+        <developerConnection>scm:git:git@github.com:dalet-oss/vfs-azure.git</developerConnection>
+        <url>https://github.com/dalet-oss/vfs-azure.git</url>
     </scm>
 
     <packaging>jar</packaging>
-  
+
     <profiles>
         <profile>
             <id>release-sign-artifacts</id>
-            
+
             <activation>
                 <property>
                     <name>performRelease</name>
                     <value>true</value>
                 </property>
             </activation>
-            
+
             <distributionManagement>
-                <snapshotRepository>
-                    <id>ossrh</id>
-                    <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-                </snapshotRepository>
+                <repository>
+                    <id>bintray</id>
+                    <url>https://api.bintray.com/maven/dalet-oss/maven/vfs-azure/;publish=1</url>
+                </repository>
             </distributionManagement>
-            
+
             <build>
+
+                <pluginManagement>
+                    <plugins>
+                        <plugin>
+                            <artifactId>maven-deploy-plugin</artifactId>
+                            <version>3.0.0-M1</version>
+                        </plugin>
+                    </plugins>
+                </pluginManagement>
+
                 <plugins>
-                    
+
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-source-plugin</artifactId>
-                        <version>2.4</version>
+                        <version>3.2.0</version>
                         <executions>
                             <execution>
                                 <id>attach-sources</id>
@@ -68,11 +76,14 @@
                             </execution>
                         </executions>
                     </plugin>
-                    
+
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
-                        <version>2.10.3</version>
+                        <version>3.1.1</version>
+                        <configuration>
+                            <failOnError>false</failOnError>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>
@@ -82,39 +93,38 @@
                             </execution>
                         </executions>
                     </plugin>
-                    
+
                     <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-gpg-plugin</artifactId>
-                        <version>1.6</version>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>flatten-maven-plugin</artifactId>
+                        <version>1.1.0</version>
+                        <configuration>
+                            <updatePomFile>true</updatePomFile>
+                            <flattenMode>resolveCiFriendliesOnly</flattenMode>
+                        </configuration>
                         <executions>
                             <execution>
-                                <id>sign-artifacts</id>
-                                <phase>verify</phase>
+                                <id>flatten</id>
+                                <phase>process-resources</phase>
                                 <goals>
-                                    <goal>sign</goal>
+                                    <goal>flatten</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>flatten.clean</id>
+                                <phase>clean</phase>
+                                <goals>
+                                    <goal>clean</goal>
                                 </goals>
                             </execution>
                         </executions>
                     </plugin>
-                    
-                    <plugin>
-                        <groupId>org.sonatype.plugins</groupId>
-                        <artifactId>nexus-staging-maven-plugin</artifactId>
-                        <version>1.6.5</version>
-                        <extensions>true</extensions>
-                        <configuration>
-                            <serverId>ossrh</serverId>
-                            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                            <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                        </configuration>
-                    </plugin>
-    
+
                 </plugins>
             </build>
         </profile>
     </profiles>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -124,15 +134,15 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>3.3.2</version>
+            <version>3.9</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
-            <version>4.0</version>
+            <version>4.4</version>
         </dependency>
-        
+
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
@@ -147,31 +157,34 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.10</version>
+            <version>1.7.29</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
-            <version>LATEST</version>
+            <version>2.12.1</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
-            <version>LATEST</version>
+            <version>2.12.1</version>
         </dependency>
-        
+
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
-            <version>LATEST</version>
+            <version>2.12.1</version>
         </dependency>
 
     </dependencies>
+
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <revision>DEV</revision>
     </properties>
+
 </project>

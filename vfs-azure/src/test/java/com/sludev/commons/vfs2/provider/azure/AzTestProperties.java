@@ -17,7 +17,10 @@
 package com.sludev.commons.vfs2.provider.azure;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +31,13 @@ import org.slf4j.LoggerFactory;
 public class AzTestProperties
 {
     private static final Logger log = LoggerFactory.getLogger(AzTestProperties.class);
-            
+
+    private static final Set<String> OVERRIDABLE_PROPERTIES = new HashSet<String>() {{
+       add("azure.account.name");
+       add("azure.account.key");
+       add("azure.test0001.container.name");
+    }};
+
     public static Properties GetProperties()
     {
         Properties testProperties = new Properties();
@@ -42,7 +51,19 @@ public class AzTestProperties
         {
             log.error("Error loading properties file", ex);
         }
-        
+
+        // Allow override with environment variables.
+        for (String propertyKey : OVERRIDABLE_PROPERTIES) {
+
+            String envPropertyKey = propertyKey.toUpperCase().replace('.', '_');
+            String envPropertyValue = System.getenv(envPropertyKey);
+
+            if (envPropertyValue != null) {
+                log.info("Overriding {} property with value from environment variable {}", propertyKey, envPropertyKey);
+                testProperties.setProperty(propertyKey, envPropertyValue);
+            }
+        }
+
         return testProperties;
     }
 }

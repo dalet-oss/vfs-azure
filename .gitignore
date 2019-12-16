@@ -1,2 +1,5 @@
 /vfs-azure/target/
 /vfs-simpleshell/target/
+.idea
+.flattened-pom.xml
+*.iml
