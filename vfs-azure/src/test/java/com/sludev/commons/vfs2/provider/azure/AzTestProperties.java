@@ -16,13 +16,13 @@
  */
 package com.sludev.commons.vfs2.provider.azure;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -38,17 +38,16 @@ public class AzTestProperties
        add("azure.test0001.container.name");
     }};
 
-    public static Properties GetProperties()
-    {
+    public static Properties GetProperties() {
+
         Properties testProperties = new Properties();
-        try
-        {
+
+        try {
             testProperties.load(AzTestProperties.class
                             .getClassLoader()
                             .getResourceAsStream("test001.properties"));
         }
-        catch (IOException ex)
-        {
+        catch (IOException ex) {
             log.error("Error loading properties file", ex);
         }
 

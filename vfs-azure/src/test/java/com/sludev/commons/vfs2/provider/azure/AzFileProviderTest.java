@@ -16,12 +16,6 @@
  */
 package com.sludev.commons.vfs2.provider.azure;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.nio.file.Paths;
-import java.util.Properties;
-import junit.framework.Assert;
 import org.apache.commons.vfs2.FileContent;
 import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileObject;
@@ -44,363 +38,383 @@ import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.nio.file.Paths;
+import java.util.Properties;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+
 /**
  *
- * @author kervin
+ * @author kervin, lspiteri
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AzFileProviderTest
 {
     private static final Logger log = LoggerFactory.getLogger(AzFileProviderTest.class);
-    
+
     private Properties testProperties;
-    
-    public AzFileProviderTest()
-    {
-    }
-    
+    private DefaultFileSystemManager fileSystemManager;
+    private FileSystemOptions fileSystemOptions;
+    private String azUri;
+
+    private static File testFile;
+
+    public AzFileProviderTest() {}
+
     @Rule
     public TestWatcher testWatcher = new AzTestWatcher();
-    
+
     @Before
-    public void setUp()
-    {
-        
-        /**
-         * Get the current test properties from a file so we don't hard-code
-         * in our source code.
-         */
-        testProperties = AzTestProperties.GetProperties();
-        
-        try
-        {
+    public void setUp() {
+
+        try {
             /**
-             * Setup the remote folders for testing
+             * Get the current test properties from a file so we don't hard-code
+             * in our source code.
              */
-            uploadFileSetup02();
+            testProperties = AzTestProperties.GetProperties();
+
+            String account = testProperties.getProperty("azure.account.name");
+            String key = testProperties.getProperty("azure.account.key");
+            String container = testProperties.getProperty("azure.test0001.container.name");
+            String host = testProperties.getProperty("azure.host", account + ".blob.core.windows.net");
+
+            fileSystemManager = new DefaultFileSystemManager();
+
+            fileSystemManager.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
+            fileSystemManager.addProvider("file", new DefaultLocalFileProvider());
+            fileSystemManager.init();
+
+            fileSystemOptions = new FileSystemOptions();
+            StaticUserAuthenticator auth = new StaticUserAuthenticator("", account, key);
+
+            DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(fileSystemOptions, auth);
+
+            azUri = String.format("%s://%s/%s/", AzConstants.AZBSSCHEME, host, container);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             log.debug("Error setting up remote folder structure.  Have you set the test001.properties file?", ex);
         }
     }
-    
-    @BeforeClass
-    public static void setUpClass()
-    {
-    }
-    
-    @AfterClass
-    public static void tearDownClass()
-    {
-    }
-    
+
     @After
-    public void tearDown() throws Exception
-    {
-        removeFileSetup02();
+    public void tearDown() throws Exception {
+        fileSystemManager.close();
     }
 
-    /**
-     * 
-     */
-    @Test
-    public void A001_uploadFile() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name");
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-        String currFileNameStr;
-        
-        File temp = File.createTempFile("uploadFile01", ".tmp");
-        try(FileWriter fw = new FileWriter(temp))
-        {
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        testFile = createSmallFile();
+    }
+
+    @AfterClass
+    public static void tearDownClass() {
+        testFile.delete();
+    }
+
+
+    private static File createSmallFile() throws Exception {
+
+        File file = File.createTempFile("uploadFile01", ".tmp");
+
+        try (FileWriter fw = new FileWriter(file)) {
+
             BufferedWriter bw = new BufferedWriter(fw);
+
             bw.append("testing...");
             bw.flush();
         }
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
-        currMan.addProvider("file", new DefaultLocalFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        currFileNameStr = "test01.tmp";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        FileObject currFile2 = currMan.resolveFile(
-                String.format("file://%s", temp.getAbsolutePath()));
-        
-        currFile.copyFrom(currFile2, Selectors.SELECT_SELF);
-        temp.delete();
+
+        return file;
     }
-    
+
+
     @Test
-    public void A002_downloadFile() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host"); // <account>.blob.core.windows.net
-        String currFileNameStr;
-        
-        File temp = File.createTempFile("downloadFile01", ".tmp");
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
-        currMan.addProvider("file", new DefaultLocalFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        currFileNameStr = "test01.tmp";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        
-        String destStr = String.format("file://%s", temp.getAbsolutePath());
-        FileObject currFile2 = currMan.resolveFile( destStr );
-        
-        log.info( String.format("copying '%s' to '%s'", currUriStr, destStr));
-        
-        currFile2.copyFrom(currFile, Selectors.SELECT_SELF);
+    public void testAzUploadFile() throws Exception {
+
+        String destUri = azUri + "test01.tmp";
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject.exists());
+
+        FileType fileType = destFileObject.getType();
+
+        assertEquals(FileType.FILE, fileType);
+
+        destFileObject.delete();
     }
-    
+
+
     @Test
-    public void A003_exist() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-        String currFileNameStr;
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        currFileNameStr = "test01.tmp";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        
-        log.info( String.format("exist() file '%s'", currUriStr));
-        
-        Boolean existRes = currFile.exists();
-        Assert.assertTrue(existRes);
-        
-        
-        currFileNameStr = "non-existant-file-8632857264.tmp";
-        currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
-        currFile = currMan.resolveFile(currUriStr, opts);
-        
-        log.info( String.format("exist() file '%s'", currUriStr));
-        
-        existRes = currFile.exists();
-        Assert.assertFalse(existRes);
+    public void testCopyBlobToBlob() throws Exception {
+
+        String destUri = azUri + "test01.tmp";
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject.exists());
+
+        String destUri2 = azUri + "test01-copy.tmp";
+
+        FileObject destFileObject2 = fileSystemManager.resolveFile(destUri2, fileSystemOptions);
+
+        destFileObject2.copyFrom(destFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject2.exists());
+
+//        destFileObject.delete();
     }
-    
+
+
     @Test
-    public void A004_getContentSize() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-        String currFileNameStr;
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        currFileNameStr = "test01.tmp";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        
-        log.info( String.format("exist() file '%s'", currUriStr));
-        
-        FileContent cont = currFile.getContent();
-        long contSize = cont.getSize();
-        
-        Assert.assertTrue(contSize>0);
-        
+    public void testDeleteFile() throws Exception {
+
+        String fileName = "test01.tmp";
+        String destUri = azUri + fileName;
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject.exists());
+
+        destFileObject.delete();
+
+        assertFalse(destFileObject.exists());
     }
-  
+
+
+    @Test
+    public void testGetType() throws Exception {
+
+        String fileName = "test/test01.tmp";
+        String destUri = azUri + fileName;
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        FileType fileType = destFileObject.getType();
+
+        assertEquals(FileType.FILE, fileType);
+
+        FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test/", fileSystemOptions);
+        fileType = dirFileObject.getType();
+
+        assertEquals(FileType.FOLDER, fileType);
+
+        FileObject imaginaryFileObject = fileSystemManager.resolveFile(azUri + "/test1/", fileSystemOptions);
+        fileType = imaginaryFileObject.getType();
+
+        assertEquals(FileType.IMAGINARY, fileType);
+
+        FileObject rootFileObject2 = fileSystemManager.resolveFile(azUri + "/", fileSystemOptions);
+        fileType = rootFileObject2.getType();
+
+        assertEquals(FileType.FOLDER, fileType);
+
+        destFileObject.delete();
+    }
+
+
+    @Test
+    public void testCreateDirectory1() throws Exception {
+
+        String fileName = "testDir01/test1.tmp";
+
+        String destUri = azUri + fileName;
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject.exists());
+
+        destFileObject.delete();
+    }
+
+
+    @Test
+    public void testDownloadFile() throws Exception {
+
+        String destUri = azUri + "/test1.tmp";
+
+        // Upload file
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        // Download file
+
+        FileObject copyFileObject =
+                fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath() + "-copy"));
+
+        copyFileObject.copyFrom(destFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(copyFileObject.exists());
+
+        copyFileObject.delete();
+        destFileObject.delete();
+    }
+
+
+    @Test
+    public void testExist() throws Exception {
+
+        String destUri = azUri + "/test1.tmp";
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject.exists());
+
+        destFileObject.delete();
+
+        destUri = azUri + "/non-existant-file.tmp";
+
+        destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        assertFalse(destFileObject.exists());
+    }
+
+
+    @Test
+    public void testGetContentSize() throws Exception {
+
+        String destUri = azUri + "/test1.tmp";
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        FileContent fileContent = destFileObject.getContent();
+
+        long size = fileContent.getSize();
+
+        assertTrue(size > 0);
+
+        destFileObject.delete();
+    }
+
+
     /**
      * By default FileObject.getChildren() will use doListChildrenResolved() if available
-     * 
-     * @throws Exception 
+     *
+     * @throws Exception
      */
     @Test
-    public void A005_listChildren() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        String currFileNameStr = "uploadFile02";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        
-        FileObject[] currObjs = currFile.getChildren();
-        for(FileObject obj : currObjs)
-        {
+    public void testListChildren() throws Exception {
+
+        createFolderStructure();
+
+        String destUri = azUri + "uploadFile02";
+
+        FileObject fileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        FileObject[] children = fileObject.getChildren();
+
+        assertTrue(children.length > 0);
+
+        for (FileObject obj : children) {
+
             FileName currName = obj.getName();
             Boolean res = obj.exists();
             FileType ft = obj.getType();
-            
-            log.info( String.format("\nNAME.PATH : '%s'\nEXISTS : %b\nTYPE : %s\n\n", 
-                           currName.getPath(), res, ft));
+
+            log.info( String.format("\nNAME.PATH : '%s'\nEXISTS : %b\nTYPE : %s\n\n", currName.getPath(), res, ft));
         }
+
+        deleteFolderStructure();
     }
-    
+
+
     @Test
-    public void A006_testContent() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-        String currFileNameStr;
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        currFileNameStr = "file05";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        
-        FileContent content = currFile.getContent();
-        long size = content.getSize();
-        Assert.assertTrue( size >= 0);
-        
-        long modTime = content.getLastModifiedTime();
-        Assert.assertTrue(modTime>0);
+    public void testFileContentMetadata() throws Exception {
+
+        String destUri = azUri + "test01.tmp";
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        FileContent fileContent = destFileObject.getContent();
+
+        long size = fileContent.getSize();
+
+        assertTrue( size > 0);
+
+        long modTime = fileContent.getLastModifiedTime();
+
+        assertTrue(modTime > 0);
+
+        destFileObject.delete();
     }
-    
-    @Test
-    public void A007_deleteFile() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-        String currFileNameStr;
-        
-        DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZBSSCHEME, new AzFileProvider());
-        currMan.init(); 
-        
-        StaticUserAuthenticator auth = new StaticUserAuthenticator("", currAccountStr, currKey);
-        FileSystemOptions opts = new FileSystemOptions(); 
-        DefaultFileSystemConfigBuilder.getInstance().setUserAuthenticator(opts, auth); 
-        
-        currFileNameStr = "test01.tmp";
-        String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZBSSCHEME, currHost, currContainerStr, currFileNameStr);
-        FileObject currFile = currMan.resolveFile(currUriStr, opts);
-        
-        log.info( String.format("deleting '%s'", currUriStr));
-        
-        Boolean delRes = currFile.delete();
-        Assert.assertTrue(delRes);
+
+
+    public void createFolderStructure() throws Exception {
+
+        String account = testProperties.getProperty("azure.account.name");
+        String key = testProperties.getProperty("azure.account.key");
+        String container = testProperties.getProperty("azure.test0001.container.name");
+        String host = testProperties.getProperty("azure.host", account + ".blob.core.windows.net");
+
+
+        File temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 01");
+
+        AzTestUtils.uploadFile(account, host, key, container, temp.toPath(), Paths.get("file01.tmp"));
+
+        temp.delete();
+
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 02");
+
+        AzTestUtils.uploadFile(account, host, key, container, temp.toPath(), Paths.get("uploadFile02/file02.tmp"));
+
+        temp.delete();
+
+        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 03");
+
+        AzTestUtils.uploadFile(account, host, key, container, temp.toPath(), Paths.get("uploadFile02/dir01/file03.tmp"));
+
+        temp.delete();
     }
-    
-    public void removeFileSetup02() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-            
-        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
-                               Paths.get("uploadFile02/dir01/file01"));
-              
-        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
-                               Paths.get("uploadFile02/dir01/file02"));
-        
-        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
-                               Paths.get("uploadFile02/dir02/file03"));
-    
-        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
-                               Paths.get("uploadFile02/file04"));
-     
-        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
-                               Paths.get("file05"));
-   
-        AzTestUtils.deleteFile(currAccountStr, currHost, currKey, currContainerStr,
-                               Paths.get("uploadFile02/dir02/file06"));
-    }
-    
-    public void uploadFileSetup02() throws Exception
-    {
-        String currAccountStr = testProperties.getProperty("azure.account.name"); 
-        String currKey = testProperties.getProperty("azure.account.key");
-        String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
-        String currHost = testProperties.getProperty("azure.host");  // <account>.blob.core.windows.net
-        
-        File temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 01");      
-        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir01/file01"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 02");      
-        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir01/file02"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 03");      
-        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir02/file03"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 04");      
-        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/file04"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 05");      
-        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("file05"));
-        temp.delete();
-        
-        temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 06");      
-        AzTestUtils.uploadFile(currAccountStr, currHost, currKey, currContainerStr, temp.toPath(),
-                               Paths.get("uploadFile02/dir02/file06"));
-        temp.delete();
+
+
+    public void deleteFolderStructure() throws Exception {
+
+        String account = testProperties.getProperty("azure.account.name");
+        String key = testProperties.getProperty("azure.account.key");
+        String container = testProperties.getProperty("azure.test0001.container.name");
+        String host = testProperties.getProperty("azure.host", account + ".blob.core.windows.net");
+
+        AzTestUtils.deleteFile(account, host, key, container,
+                               Paths.get("file01.tmp"));
+
+        AzTestUtils.deleteFile(account, host, key, container,
+                               Paths.get("uploadFile02/file02.tmp"));
+
+        AzTestUtils.deleteFile(account, host, key, container,
+                               Paths.get("uploadFile02/dir01/file03.tmp"));
     }
 }
