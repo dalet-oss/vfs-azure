@@ -25,7 +25,10 @@ import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.models.ParallelTransferOptions;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.Utility;
+import com.azure.storage.common.sas.SasProtocol;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -49,8 +52,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 
@@ -63,10 +66,11 @@ import java.util.List;
 public class AzFileObject extends AbstractFileObject {
 
     private static final Logger log = LoggerFactory.getLogger(AzFileObject.class);
+
+    private static int UPLOAD_BLOCK_SIZE = 20; //in MBs
     private static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
-    static Integer UPLOAD_BLOCK_SIZE = 20; //in MB's
+
     private static Boolean ENABLE_AZURE_STORAGE_LOG = false;
-//    private static Tika tika = new Tika();
 
     private FileType fileType = null;
 
@@ -311,7 +315,7 @@ public class AzFileObject extends AbstractFileObject {
      */
     @Override
     protected OutputStream doGetOutputStream(boolean bAppend) throws Exception {
-        return blobClient.getBlockBlobClient().getBlobOutputStream();
+        return blobClient.getBlockBlobClient().getBlobOutputStream(true);
     }
 
 
@@ -353,7 +357,6 @@ public class AzFileObject extends AbstractFileObject {
 
             String name = blobItem.getName();
             String[] names = name.split("/");
-
             String itemName = names[names.length - 1];
 
             // Preserve folders
@@ -378,8 +381,7 @@ public class AzFileObject extends AbstractFileObject {
      */
     @Override
     protected void doCreateFolder() throws Exception {
-
-        log.info(String.format("doCreateFolder() called."));
+        // Noop
     }
 
 
@@ -423,7 +425,6 @@ public class AzFileObject extends AbstractFileObject {
      */
     @Override
     protected boolean doSetLastModifiedTime(long modtime) throws Exception {
-
         return true;
     }
 
@@ -502,6 +503,7 @@ public class AzFileObject extends AbstractFileObject {
         try {
 
             doAttach();
+
             ArrayList files = new ArrayList();
             src.findFiles(selector, false, files);
 
@@ -521,38 +523,11 @@ public class AzFileObject extends AbstractFileObject {
                     destFile.delete(Selectors.SELECT_ALL);
                 }
 
-                // We need the CloudBlockBlob for the file that we want to upload, as we were always using the
-                // CloudBlockBlob of the root directory when we were trying to copy directories, hence it was always overwriting
-                // the root directory on azure storage.
-                //                CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
-
                 try {
-//                    if (srcFile.getType().hasChildren()) {
-//                        destFile.createFolder();
-//                    }
-//                    else
+
                     if (canCopyServerSide(srcFile, destFile)) {
-
-                        // Azure to Azure copy
-                        //
-                        //                        CloudBlockBlob currDestinationBlob = ((AzFileObject) destFile).getBlobClient();
-                        //                        CloudBlockBlob currSourceBlob = ((AzFileObject) srcFile).getBlobClient();
-                        //
-                        //                        try {
-                        //                            currDestinationBlob.startCopy(currSourceBlob);
-                        //                        }
-                        //                        catch (URISyntaxException e) {
-                        //                            throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, e);
-                        //                        }
-                        //                        finally {
-                        //                            destFile.close();
-                        //                            srcFile.close();
-                        //                        }
-                        URL url = ((AzFileObject) src).getSignedURL(24);
-
-                        String srcUrl = url.toString();
-
-                        blobClient.getBlockBlobClient().copyFromUrl(srcUrl);
+                        URL url = ((AzFileObject) srcFile).getSignedURL(24);
+                        blobClient.copyFromUrl(url.toString());
                     }
                     else if (srcFile.getType().hasContent()) {
 
@@ -568,14 +543,14 @@ public class AzFileObject extends AbstractFileObject {
 
                             int blockSize = getBlockSize(srcFile.getContent().getSize(), UPLOAD_BLOCK_SIZE);
 
-                            ParallelTransferOptions opts = new ParallelTransferOptions(blockSize, 4, null);
+                            ParallelTransferOptions opts = new ParallelTransferOptions(blockSize, 6, null);
 
                             InputStream is = srcFile.getContent().getInputStream();
                             long srcSize = srcFile.getContent().getSize();
 
                             Flux<ByteBuffer> fbb = Utility.convertStreamToByteBuffer(is, srcSize, blockSize);
 
-                            client.upload(fbb, opts, true).block();;
+                            client.upload(fbb, opts, true).block();
                         }
                         finally {
                             destFile.close();
@@ -606,13 +581,13 @@ public class AzFileObject extends AbstractFileObject {
 
         int blockSize = maxBlockSize * MEGABYTES_TO_BYTES_MULTIPLIER;
 
-        long sizePerThread = (long) Math.floor(fileSize / 4.0);
+        long sizePerThread = (long) Math.floor(fileSize / 6.0);
 
         if (sizePerThread < blockSize) {
-            blockSize = (int) (sizePerThread / 4);
+            blockSize = (int) (sizePerThread / 6);
         }
 
-        blockSize = blockSize == 0 ? 4 : blockSize;
+        blockSize = blockSize == 0 ? (maxBlockSize * MEGABYTES_TO_BYTES_MULTIPLIER) : blockSize;
 
         return blockSize;
     }
@@ -659,22 +634,21 @@ public class AzFileObject extends AbstractFileObject {
     /**
      * Generate signed url to directly access file.
      *
-     * @param duration - in hours
+     * @param durationHrs - in hours
      * @return
      * @throws Exception
      */
     public URL getSignedURL(int durationHrs) throws Exception {
 
-        Date expiry = new Date();
-        expiry.setTime(expiry.getTime() + (durationHrs * 60 * 60));
+        OffsetDateTime offsetDateTime = OffsetDateTime.now().plusHours(durationHrs);
+        BlobSasPermission sasPermission = BlobSasPermission.parse("r");
 
-//        SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
-//
-//        policy.setPermissions(EnumSet.of(SharedAccessBlobPermissions.READ));
-//        policy.setSharedAccessStartTime(now);
-//        policy.setSharedAccessExpiryTime(calendar.getTime());
+        BlobServiceSasSignatureValues signatureValues = new BlobServiceSasSignatureValues(offsetDateTime, sasPermission);
 
-        String url = this.blobClient.getBlobUrl();
+        signatureValues.setStartTime(OffsetDateTime.now());
+        signatureValues.setProtocol(SasProtocol.HTTPS_ONLY);
+
+        String url = this.blobClient.getBlobUrl() + "?" + blobClient.generateSas(signatureValues);
 
         return new URL(url);
     }

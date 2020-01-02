@@ -131,6 +131,7 @@ public class AzFileProvider extends AbstractOriginatingFileProvider {
         setFileNameParser(AzFileNameParser.getInstance());
     }
 
+
     /**
      * In the case that we are not sent FileSystemOptions object, we need to have
      * one handy.
@@ -188,7 +189,8 @@ public class AzFileProvider extends AbstractOriginatingFileProvider {
                     .credential(storageCreds)
                     .buildClient();
 
-            fileSystem = new AzFileSystem(fileName, blobContainerAsyncClient, blobContainerClient, fileSystemOptions);
+            fileSystem = new AzFileSystem(fileName, blobContainerAsyncClient, blobContainerClient, storageCreds,
+                    fileSystemOptions);
         }
         finally {
             UserAuthenticatorUtils.cleanup(authData);

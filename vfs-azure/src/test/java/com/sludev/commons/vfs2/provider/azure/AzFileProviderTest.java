@@ -169,13 +169,14 @@ public class AzFileProviderTest
 
         String destUri2 = azUri + "test01-copy.tmp";
 
-        FileObject destFileObject2 = fileSystemManager.resolveFile(destUri2, fileSystemOptions);
+        FileObject destFileObjectCopy = fileSystemManager.resolveFile(destUri2, fileSystemOptions);
 
-        destFileObject2.copyFrom(destFileObject, Selectors.SELECT_SELF);
+        destFileObjectCopy.copyFrom(destFileObject, Selectors.SELECT_SELF);
 
-        assertTrue(destFileObject2.exists());
+        assertTrue(destFileObjectCopy.exists());
 
-//        destFileObject.delete();
+        destFileObject.delete();
+        destFileObjectCopy.delete();
     }
 
 

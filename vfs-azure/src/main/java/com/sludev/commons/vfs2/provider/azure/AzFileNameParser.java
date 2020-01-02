@@ -23,8 +23,6 @@ import org.apache.commons.vfs2.provider.FileNameParser;
 import org.apache.commons.vfs2.provider.UriParser;
 import org.apache.commons.vfs2.provider.VfsComponentContext;
 import org.apache.commons.vfs2.provider.url.UrlFileNameParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Used for defining / parsing a provided FileName object.
@@ -36,8 +34,6 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class AzFileNameParser extends UrlFileNameParser {
-
-    private static final Logger log = LoggerFactory.getLogger(AzFileNameParser.class);
 
     private static final AzFileNameParser INSTANCE = new AzFileNameParser();
 
