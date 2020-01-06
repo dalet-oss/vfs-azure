@@ -18,7 +18,7 @@ fi
 VERSION=$(echo $VERSION | sed 's#release/##g')
 echo "Publishing version: ${VERSION}"
 
-status=$(curl -s --head -w %{http_code} -o /dev/null https://dl.bintray.com/dalet-oss/maven/com/dalet/sludev/commons/vfs-azure/${VERSION}/)
+status=$(curl -s --head -w %{http_code} -o /dev/null https://dl.bintray.com/dalet-oss/maven/com/dalet/vfs-azure/${VERSION}/)
 if [ $status -eq 200 ]
 then
   echo "Version already published - nothing to do here"

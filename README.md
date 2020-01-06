@@ -1,24 +1,41 @@
-# Dalet fork
-The purpose of this fork is to maintain any changes made by Dalet, until those changes are merged upstream.
-From this fork we publish artifacts to JCenter; instead of `com.sludev.commons:vfs-azure` the artifacts are named
-`com.dalet.sludev.commons:vfs-azure` to make clear their different origin.
+# vfs-azure
 
-## Versioning model
-Since the upstream repository owner seems to be ignoring PRs, we conclude that our fork will remain long-lived.
-On that basis, the versioning model is as follows:
+Azure provider for Apache Commons VFS - http://commons.apache.org/proper/commons-vfs/
+
+
+## Origins
+
+The code in this repo was originally derived from https://github.com/kervinpierre/vfs-azure.  That repo is clearly no
+longer being maintained (at the time of writing, no changes in 5 years, and all contributed PRs and issues have been
+ignored).
+
+We have made a number of changes and continue to develop this repo.  To simplify processes such as PRs etc, we now
+maintain this not as a fork of the original project but as a project in its own right.
+
+
+## Builds, releases etc.
+
+This project is built using Travis CI.
+[![Build Status](https://travis-ci.com/dalet-oss/vfs-azure.svg?branch=master)](https://travis-ci.com/dalet-oss/vfs-azure)
+
+Published artifacts are available on JCenter as `com.dalet:vfs-azure`.
+
+For the latest version, see https://github.com/dalet-oss/vfs-azure/releases.
+
+#### Note for maintainers:
+
 -  Every push to master gets built, but not published
 -  To publish artifacts, it is necessary to specify a version number by adding an appropriate Git tag to `HEAD` with an
    appropriate prefix.  For example, tagging HEAD with `release/1.3.8` will cause version `1.3.8` to be published on
    the next build.
 
 
-# vfs-azure
-Azure provider for Apache Commons VFS - http://commons.apache.org/proper/commons-vfs/
+## Documentation
 
 From the website...
 "Commons VFS provides a single API for accessing various different file systems. It presents a uniform view of the files from various different sources, such as the files on local disk, on an HTTP server, or inside a Zip archive."
 
-Now Apache Commons VFS can now add Azure Blob Storage to the list
+Now Apache Commons VFS can add Azure Blob Storage to the list
 
 The project also includes a small shell ( taken from the original Apache Commons VFS tests ) but improved with JLine2 ( for command completion and history ).  This should allow interactive testing.
 
