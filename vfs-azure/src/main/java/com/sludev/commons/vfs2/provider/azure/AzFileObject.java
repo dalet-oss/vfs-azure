@@ -16,22 +16,27 @@
  */
 package com.sludev.commons.vfs2.provider.azure;
 
-import com.microsoft.azure.storage.OperationContext;
-import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.BlobInputStream;
-import com.microsoft.azure.storage.blob.BlobProperties;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.CloudBlockBlob;
-import com.microsoft.azure.storage.blob.ListBlobItem;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
-import org.apache.commons.collections4.CollectionUtils;
+import com.azure.storage.blob.BlobAsyncClient;
+import com.azure.storage.blob.BlobClient;
+import com.azure.storage.blob.BlobContainerAsyncClient;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobItem;
+import com.azure.storage.blob.models.BlobProperties;
+import com.azure.storage.blob.models.BlobRange;
+import com.azure.storage.blob.models.BlobStorageException;
+import com.azure.storage.blob.models.Block;
+import com.azure.storage.blob.models.BlockList;
+import com.azure.storage.blob.models.BlockListType;
+import com.azure.storage.blob.models.ListBlobsOptions;
+import com.azure.storage.blob.models.ParallelTransferOptions;
+import com.azure.storage.blob.sas.BlobSasPermission;
+import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
+import com.azure.storage.blob.specialized.BlobOutputStream;
+import com.azure.storage.blob.specialized.BlockBlobClient;
+import com.azure.storage.common.sas.SasProtocol;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.commons.net.io.CopyStreamListener;
 import org.apache.commons.vfs2.FileNotFolderException;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSelector;
@@ -41,25 +46,16 @@ import org.apache.commons.vfs2.NameScope;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.provider.AbstractFileName;
 import org.apache.commons.vfs2.provider.AbstractFileObject;
-import org.apache.commons.vfs2.provider.URLFileName;
-import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.EnumSet;
-import java.util.GregorianCalendar;
 import java.util.List;
-
-import static java.util.Objects.isNull;
-import static java.util.Objects.nonNull;
 
 
 /**
@@ -71,26 +67,23 @@ import static java.util.Objects.nonNull;
 public class AzFileObject extends AbstractFileObject {
 
     private static final Logger log = LoggerFactory.getLogger(AzFileObject.class);
-
-    private final AzFileSystem fileSystem;
-    private CloudBlobContainer currContainer;
-    private CloudBlockBlob currBlob;
-    private BlobProperties currBlobProperties;
-
     private static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
-
+    public static final int BLOB_COPY_THRESHOLD = 256 * 1024 * 1024;
+    static Integer UPLOAD_BLOCK_SIZE = 20; //in MB's
     private static Boolean ENABLE_AZURE_STORAGE_LOG = false;
 
-    static Integer UPLOAD_BLOCK_SIZE = 3; //in MB's
 
-    private static Tika tika = new Tika();
+    private FileType fileType = null;
 
     static {
 
         String uploadBlockSizeProperty = System.getProperty("azure.upload.block.size");
-        UPLOAD_BLOCK_SIZE = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE) * MEGABYTES_TO_BYTES_MULTIPLIER;
+
+        UPLOAD_BLOCK_SIZE = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE); //*
+        // MEGABYTES_TO_BYTES_MULTIPLIER;
 
         String enableAzureLogging = System.getProperty("azure.enable.logging");
+
         if (StringUtils.isNotEmpty(enableAzureLogging)) {
             ENABLE_AZURE_STORAGE_LOG = BooleanUtils.toBoolean(enableAzureLogging);
         }
@@ -98,95 +91,77 @@ public class AzFileObject extends AbstractFileObject {
         log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE);
     }
 
-    public CloudBlockBlob getCurrBlob() {
-
-        return this.currBlob;
-    }
+    private final AzFileSystem fileSystem;
+    private BlobContainerClient blobContainerClient;
+    private BlobContainerAsyncClient blobContainerAsyncClient;
+    private BlobClient blobClient;
+    private BlobAsyncClient blobAsyncClient;
+    private BlobProperties blobProperties;
+    private boolean isAttached = false;
 
 
     /**
      * Creates a new FileObject for use with a remote Azure Blob Storage file or folder.
      *
-     * @param name
+     * @param fileName
      * @param fileSystem
      */
-    protected AzFileObject(final AbstractFileName name, final AzFileSystem fileSystem) {
+    protected AzFileObject(final AbstractFileName fileName, final AzFileSystem fileSystem) {
 
-        super(name, fileSystem);
+        super(fileName, fileSystem);
+
         this.fileSystem = fileSystem;
 
-        currContainer = null;
-        currBlob = null;
-        currBlobProperties = null;
+        blobContainerAsyncClient = fileSystem.getContainerAsyncClient();
+        blobContainerClient = fileSystem.getContainerClient();
+        blobProperties = null;
+    }
+
+
+    public BlobAsyncClient getBlobAsyncClient() {
+
+        return this.blobAsyncClient;
+    }
+
+
+    @Override
+    protected void doAttach() throws Exception {
+
+        if (isAttached) {
+            return;
+        }
+
+        String name = getName().getPath();
+
+        if (name.startsWith("/")) {
+            name = name.substring(1);
+        }
+
+        BlobClient client = blobContainerClient.getBlobClient(name);
+        BlobAsyncClient asyncClient = blobContainerAsyncClient.getBlobAsyncClient(name);
+
+        if (asyncClient != null) {
+            blobClient = client;
+            blobAsyncClient = asyncClient;
+            isAttached = true;
+        }
     }
 
 
     /**
-     * Convenience method that returns the container and path from the current URL.
-     *
-     * @return A tuple containing the container name and the path.
-     */
-    protected Pair<String, String> getContainerAndPath() {
-
-        Pair<String, String> res = null;
-
-        try {
-            URLFileName currName = (URLFileName) getName();
-
-            String currNameStr = currName.getPath();
-            currNameStr = StringUtils.stripStart(currNameStr, "/");
-
-            if (StringUtils.isBlank(currNameStr)) {
-                log.warn(
-                        String.format("getContainerAndPath() : Path '%s' does not appear to be valid", currNameStr));
-
-                return null;
-            }
-
-            // Deal with the special case of the container root.
-            if (StringUtils.contains(currNameStr, "/") == false) {
-                // Container and root
-                return new ImmutablePair<>(currNameStr, "/");
-            }
-
-            String[] resArray = StringUtils.split(currNameStr, "/", 2);
-
-            res = new ImmutablePair<>(resArray[0], resArray[1]);
-        }
-        catch (Exception ex) {
-            log.error(
-                    String.format("getContainerAndPath() : Path does not appear to be valid"), ex);
-        }
-
-        return res;
-    }
-
-
-    /**
-     * Callback used when this FileObject is first used.  We connect to the remote
-     * server and check early so we can 'fail-fast'.  If there are no issues then
-     * this FileObject can be used.
+     * Callback for use when detaching this File Object from Azure Blob Storage.
+     * <p>
+     * The File Object should be reusable after <code>attach()</code> call.
      *
      * @throws Exception
      */
     @Override
-    protected void doAttach() throws Exception {
+    protected void doDetach() throws Exception {
 
-        Pair<String, String> path = getContainerAndPath();
-
-        try {
-            // Check the container.  Force a network call so we can fail-fast
-            currContainer
-                    = fileSystem.getClient().getContainerReference(path.getLeft());
-        }
-        catch (RuntimeException ex) {
-            log.error(String.format("doAttach() Exception for '%s' : '%s'",
-                    path.getLeft(), path.getRight()), ex);
-
-            throw ex;
-        }
-
-        currBlob = currContainer.getBlockBlobReference(path.getRight());
+        blobClient = null;
+        blobAsyncClient = null;
+        blobProperties = null;
+        isAttached = false;
     }
 
 
@@ -203,96 +178,59 @@ public class AzFileObject extends AbstractFileObject {
     @Override
     protected FileType doGetType() throws Exception {
 
+        doAttach();
+
         FileType res;
 
-        URLFileName currName = (URLFileName) getName();
+        AzFileName fileName = (AzFileName) getName();
 
-        if (currName != null && currName.getType() == FileType.FOLDER) {
+        String name = fileName.getPath();
+
+        if (name.startsWith("/")) {
+            name = name.substring(1);
+        }
+
+        // If we are given the container root then consider this a folder.
+        if ("".equals(name)) {
             return FileType.FOLDER;
         }
 
-        if (currBlob.exists()) {
-            res = FileType.FILE;
+        ListBlobsOptions lbo = new ListBlobsOptions();
+
+        lbo.setMaxResultsPerPage(2);
+        lbo.setPrefix(name);
+
+        Iterable<BlobItem> blobs = blobContainerClient.listBlobsByHierarchy(name, lbo, null);
+
+        List<BlobItem> blobList = new ArrayList<>();
+
+        blobs.forEach(b -> {
+            blobList.add(b);
+        });
+
+        if (blobList.size() > 1) {
+            res = FileType.FOLDER;
         }
-        else {
-            // Blob Service does not have folders.  Just files with path separators in their names.
+        else if (blobList.size() == 1) {
 
-            // Here's the trick for folders.
-            //
-            // Do a listing on that prefix.  If it returns anything, after not existing, then it's a folder.
-            Pair<String, String> path = getContainerAndPath();
-            String prefix = path.getRight();
-            if (prefix.endsWith("/") == false) {
-                // We need folders ( prefixes ) to end with a slash
-                prefix += "/";
-            }
+            BlobItem item = blobList.get(0);
 
-            Iterable<ListBlobItem> blobs = null;
-            if (prefix.equals("/")) {
-                // Special root path case. List the root blobs with no prefix
-                blobs = currContainer.listBlobs();
-            }
-            else {
-                blobs = currContainer.listBlobs(prefix);
-            }
-
-            if (blobs.iterator().hasNext()) {
+            if (item.isPrefix() != null && item.isPrefix()) {
                 res = FileType.FOLDER;
             }
             else {
-                res = FileType.IMAGINARY;
+                res = FileType.FILE;
             }
         }
-
-        return res;
-    }
-
-
-    /**
-     * Lists the children of this file.  Is only called if {@link #doGetType}
-     * returns {@link FileType#FOLDER}.  The return value of this method
-     * is cached, so the implementation can be expensive.<br />
-     *
-     * @return a possible empty String array if the file is a directory or null or an exception if the
-     * file is not a directory or can't be read.
-     * @throws Exception if an error occurs.
-     */
-    @Override
-    protected String[] doListChildren() throws Exception {
-
-        String[] res = null;
-
-        Pair<String, String> path = getContainerAndPath();
-
-        String prefix = path.getRight();
-        if (prefix.endsWith("/") == false) {
-            // We need folders ( prefixes ) to end with a slash
-            prefix += "/";
-        }
-
-        Iterable<ListBlobItem> blobs = null;
-        if (prefix.equals("/")) {
-            // Special root path case. List the root blobs with no prefix
-            blobs = currContainer.listBlobs();
-        }
         else {
-            blobs = currContainer.listBlobs(prefix);
+            res = FileType.IMAGINARY;
         }
 
-        List<ListBlobItem> blobList = new ArrayList<>();
+        fileType = res;
 
-        // Pull it all in memory and work from there
-        CollectionUtils.addAll(blobList, blobs);
-        ArrayList<String> resList = new ArrayList<>();
-        for (ListBlobItem currBlob : blobList) {
-            String currBlobStr = currBlob.getUri().getPath();
-            resList.add(currBlobStr);
-        }
-
-        res = resList.toArray(new String[resList.size()]);
-
-        return res;
+        return fileType;
     }
+
 
     //    @Override
     //    protected FileObject[] doListChildrenResolved() throws Exception
@@ -339,15 +277,6 @@ public class AzFileObject extends AbstractFileObject {
     //    }
 
 
-    private void checkBlobProperties() throws StorageException {
-
-        if (currBlobProperties == null) {
-            currBlob.downloadAttributes();
-            currBlobProperties = currBlob.getProperties();
-        }
-    }
-
-
     /**
      * Callback for handling "content size" requests by the provider.
      *
@@ -359,8 +288,8 @@ public class AzFileObject extends AbstractFileObject {
 
         long res = -1;
 
-        checkBlobProperties();
-        res = currBlobProperties.getLength();
+        getBlobProperties();
+        res = getBlobProperties().getBlobSize();
 
         return res;
     }
@@ -374,24 +303,76 @@ public class AzFileObject extends AbstractFileObject {
      */
     @Override
     protected InputStream doGetInputStream() throws Exception {
-
-        BlobInputStream in = currBlob.openInputStream();
-
-        return in;
+        return blobClient.getBlockBlobClient().openInputStream();
     }
 
 
     /**
-     * Callback for handling delete on this File Object
+     * Callback for getting an OutputStream for writing into Azure Blob Storage file.
      *
+     * @param bAppend bAppend true if the file should be appended to, false if it should be overwritten.
+     * @return
      * @throws Exception
      */
     @Override
-    protected void doDelete() throws Exception {
-        // Use deleteIfExists() to simplify recursive deletes.
-        // Otherwise VFS will call delete() on an empty folder, and we know
-        // folders do not really exist.  Especially empty ones.
-        currBlob.deleteIfExists();
+    protected OutputStream doGetOutputStream(boolean bAppend) throws Exception {
+        return blobClient.getBlockBlobClient().getBlobOutputStream();
+    }
+
+
+    /**
+     * Lists the children of this file.  Is only called if {@link #doGetType}
+     * returns {@link FileType#FOLDER}.  The return value of this method
+     * is cached, so the implementation can be expensive.<br />
+     *
+     * @return a possible empty String array if the file is a directory or null or an exception if the
+     * file is not a directory or can't be read.
+     * @throws Exception if an error occurs.
+     */
+    @Override
+    protected String[] doListChildren() throws Exception {
+
+        AzFileName fileName = (AzFileName) getName();
+
+        String path = fileName.getPath();
+
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+
+        if (!path.endsWith("/")) {
+            path = path + "/";
+        }
+
+        Iterable<BlobItem> blobs = blobContainerAsyncClient.listBlobsByHierarchy(path).toIterable();
+
+        List<BlobItem> blobList = new ArrayList<>();
+
+        blobs.forEach(b -> {
+            blobList.add(b);
+        });
+
+        ArrayList<String> resList = new ArrayList<>();
+
+
+        for (BlobItem blobItem : blobList) {
+
+            String name = blobItem.getName();
+            String[] names = name.split("/");
+
+            String itemName = names[names.length - 1];
+
+            // Preserve folders
+            if (name.endsWith("/")) {
+                itemName = itemName + "/";
+            }
+
+            resList.add(itemName);
+        }
+
+        String[] res = resList.toArray(new String[resList.size()]);
+
+        return res;
     }
 
 
@@ -409,47 +390,16 @@ public class AzFileObject extends AbstractFileObject {
 
 
     /**
-     * Used for creating folders.  It's not used since Azure Cloud Storage does not have
-     * the concept of folders.
-     *
-     * @throws FileSystemException
-     */
-    @Override
-    public void createFolder() throws FileSystemException {
-
-        log.debug(String.format("createFolder() called."));
-    }
-
-
-    /**
-     * Callback for getting an OutputStream for writing into Azure Blob Storage file.
-     *
-     * @param bAppend bAppend true if the file should be appended to, false if it should be overwritten.
-     * @return
-     * @throws Exception
-     */
-    @Override
-    protected OutputStream doGetOutputStream(boolean bAppend) throws Exception {
-
-        OutputStream res = currBlob.openOutputStream();
-
-        return res;
-    }
-
-
-    /**
-     * Callback for use when detaching this File Object from Azure Blob Storage.
-     * <p>
-     * The File Object should be reusable after <code>attach()</code> call.
+     * Callback for handling delete on this File Object
      *
      * @throws Exception
      */
     @Override
-    protected void doDetach() throws Exception {
+    protected void doDelete() throws Exception {
 
-        currBlob = null;
-        currContainer = null;
-        currBlobProperties = null;
+        if (FileType.FILE == doGetType()) {
+            blobClient.delete();
+        }
     }
 
 
@@ -462,14 +412,11 @@ public class AzFileObject extends AbstractFileObject {
     @Override
     protected long doGetLastModifiedTime() throws Exception {
 
-        long res;
+        if (!blobClient.exists()) {
+            return 0;
+        }
 
-        checkBlobProperties();
-        Date lm = currBlobProperties.getLastModified();
-
-        res = lm.getTime();
-
-        return res;
+        return getBlobProperties().getLastModified().toEpochSecond();
     }
 
 
@@ -488,6 +435,34 @@ public class AzFileObject extends AbstractFileObject {
 
 
     /**
+     * Determines if the file exists.
+     *
+     * @return true if the file exists, false otherwise,
+     * @throws FileSystemException if an error occurs.
+     */
+    @Override public boolean exists() throws FileSystemException {
+
+        try {
+            FileType type = doGetType();
+            return FileType.IMAGINARY != type;
+        }
+        catch (Exception e) {
+            throw new FileSystemException(e);
+        }
+    }
+
+
+    /**
+     * This will prepare the fileObject to get resynchronized with the underlying file system if required.
+     *
+     * @throws FileSystemException if an error occurs.
+     */
+    @Override public void refresh() throws FileSystemException {
+        // Noop
+    }
+
+
+    /**
      * Returns the list of children.
      *
      * @return The list of children
@@ -500,7 +475,7 @@ public class AzFileObject extends AbstractFileObject {
         try {
             // Folders which are copied from other folders, have type = IMAGINARY. We can not throw exception based on folder
             // type only and so we have check here for content.
-            if (getType().hasContent()) {
+            if (doGetType().hasContent()) {
                 throw new FileNotFolderException(getName());
             }
         }
@@ -512,96 +487,61 @@ public class AzFileObject extends AbstractFileObject {
     }
 
 
-    /**
-     * Override to use Azure Blob Java Client library in upload. This is efficient then using default.
-     */
     @Override
-    public void copyFrom(final FileObject file, final FileSelector selector)
+    public void copyFrom(FileObject src, FileSelector selector)
             throws FileSystemException {
 
-        this.copyFrom(file, selector, null);
-    }
-
-
-    public void copyFrom(FileObject file, FileSelector selector, CopyStreamListener copyStreamListener)
-            throws FileSystemException {
-
-        log.debug("Inside AZFileObject copy");
-
-        if (!file.exists()) {
-            throw new FileSystemException("vfs.provider/copy-missing-file.error", file);
+        if (!src.exists()) {
+            throw new FileSystemException("vfs.provider/copy-missing-file.error", src);
         }
-        else {
-            ArrayList files = new ArrayList();
-            file.findFiles(selector, false, files);
-            int count = files.size();
 
-            for (int i = 0; i < count; ++i) {
+        try {
+
+            doAttach();
+
+            ArrayList files = new ArrayList();
+            src.findFiles(selector, false, files);
+
+            for (int i = 0; i < files.size(); ++i) {
+
                 FileObject srcFile = (FileObject) files.get(i);
-                String relPath = file.getName().getRelativeName(srcFile.getName());
+                FileType srcFileType = srcFile.getType();
+
+                if (FileType.FOLDER == srcFileType) {
+                    continue;
+                }
+
+                String relPath = src.getName().getRelativeName(srcFile.getName());
                 FileObject destFile = this.resolveFile(relPath, NameScope.DESCENDENT_OR_SELF);
+
                 if (destFile.exists() && destFile.getType() != srcFile.getType()) {
                     destFile.delete(Selectors.SELECT_ALL);
                 }
 
-                // We need to requires the CloudBlockBlob for the that we want to upload, as we were always using the
+                // We need the CloudBlockBlob for the file that we want to upload, as we were always using the
                 // CloudBlockBlob of the root directory when we were trying to copy directories, hence it was always overwriting
                 // the root directory on azure storage.
-                CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
+                //                CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
 
                 try {
                     if (srcFile.getType().hasChildren()) {
                         destFile.createFolder();
                     }
                     else if (canCopyServerSide(srcFile, destFile)) {
-                        CloudBlockBlob currDestinationBlob = ((AzFileObject) destFile).getCurrBlob();
-                        CloudBlockBlob currSourceBlob = ((AzFileObject) srcFile).getCurrBlob();
-                        try {
-                            currDestinationBlob.startCopy(currSourceBlob);
+
+                        if (srcFile.getContent().getSize() > BLOB_COPY_THRESHOLD) {
+                            doCopyFromUrl((AzFileObject) srcFile);
                         }
-                        catch (URISyntaxException e) {
-                            throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, e);
+                        else {
+                            URL url = ((AzFileObject) srcFile).getSignedURL(24);
+                            blobClient.copyFromUrl(url.toString());
                         }
-                        finally {
-                            destFile.close();
-                            srcFile.close();
-                        }
+
+                        doGetType(); // Change file to non-imgainary type.
                     }
                     else if (srcFile.getType().hasContent()) {
-                        try {
 
-                            InputStream sourceStream = srcFile.getContent().getInputStream();
-                            long length = srcFile.getContent().getSize();
-                            if (UPLOAD_BLOCK_SIZE != null) {
-                                fileCurrBlob.setStreamWriteSizeInBytes(UPLOAD_BLOCK_SIZE);
-                            }
-
-                            BlobProperties fileCurrBlobProperties = fileCurrBlob.getProperties();
-
-                            if (fileCurrBlobProperties != null) {
-                                String fileName = srcFile.getName().getBaseName();
-                                String contentType = tika.detect(fileName);
-
-                                log.debug("Content type is {} for {} file", contentType, fileName);
-
-                                if (contentType != null) {
-                                    fileCurrBlobProperties.setContentType(contentType);
-                                }
-                            }
-                            else {
-                                log.debug("currBlobProperties is null");
-                            }
-
-                            OperationContext opContext = new OperationContext();
-                            opContext.setLoggingEnabled(ENABLE_AZURE_STORAGE_LOG);
-
-                            fileCurrBlob.upload(sourceStream, length, null, null, opContext);
-
-                        }
-                        finally {
-                            destFile.close();
-                            srcFile.close();
-                        }
+                        doCopyFromStream(srcFile, destFile);
                     }
                     else {
                         // nothing useful to do if no content and can't have children
@@ -609,39 +549,116 @@ public class AzFileObject extends AbstractFileObject {
                                 new UnsupportedOperationException());
                     }
                 }
-                catch (IOException io) {
-                    throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, io);
-                }
-                catch (StorageException se) {
-                    throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, se);
+                catch (IOException | BlobStorageException e) {
+                    throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, e);
                 }
             }
-
         }
-
-        log.debug("Exit AZFileObject copy");
+        catch (Exception e) {
+            throw new FileSystemException(e);
+        }
     }
 
 
     /**
-     * Returns the file CloudBlockBlob of the give file.
-     * If the file is not the type of AzFileObject or does not have its own CloudBlockBlob it is going to return the
-     * CloudBlockBlob of the current file.
+     * Copy a file object via input/output streams.
+     *
+     * @param srcFile
+     * @param destFile
+     * @throws IOException
      */
-    private CloudBlockBlob getFileCurrBlob(FileObject destFile) {
+    private void doCopyFromStream(FileObject srcFile, FileObject destFile) throws Exception {
 
-        CloudBlockBlob cloudBlockBlob = currBlob;
-        if (AzFileObject.class.isAssignableFrom(destFile.getClass())) {
+        try {
+            String destFilename = destFile.getName().getPath();
 
-            cloudBlockBlob = ((AzFileObject) destFile).getCurrBlob();
-            if (cloudBlockBlob == null) {
-
-                cloudBlockBlob = currBlob;
+            if (destFilename.startsWith("/")) {
+                destFilename = destFilename.substring(1);
             }
 
+            BlobClient destBlobClient = blobContainerClient.getBlobClient(destFilename);
+
+//                            int blockSize = getBlockSize(srcFile.getContent().getSize(), UPLOAD_BLOCK_SIZE);
+
+            int blockSize = 4 * 1024 *1024;
+
+            ParallelTransferOptions opts =
+                    new ParallelTransferOptions(blockSize, 5, null);
+
+            BlobOutputStream bos = destBlobClient.getBlockBlobClient().getBlobOutputStream(
+                    opts, null, null, null, null);
+
+            InputStream is = srcFile.getContent().getInputStream();
+
+            try {
+                byte[] buffer = new byte[4 * 1024 *1024];
+
+                for (int len; (len = is.read(buffer)) != -1; ) {
+                    bos.write(buffer, 0, len);
+                }
+            }
+            finally {
+                is.close();
+                bos.close();
+            }
+
+            doGetType();
+        }
+        finally {
+            destFile.close();
+            srcFile.close();
+        }
+    }
+
+
+    /**
+     * Performas a blob to blob copy for files larger and 256MB.
+     * @param srcFile
+     * @throws Exception
+     */
+    private void doCopyFromUrl(AzFileObject srcFile) throws Exception {
+
+        BlockBlobClient srcBlobClient = srcFile.blobClient.getBlockBlobClient();
+        BlockBlobClient destBlobClient = blobClient.getBlockBlobClient();
+
+        // Get the list of committed blocks
+        BlockList blockList = srcBlobClient.listBlocks(BlockListType.COMMITTED);
+        List<Block> blocks = blockList.getCommittedBlocks();
+
+        long rangeMax = 0;
+        URL blobUrl = srcFile.getSignedURL(24);
+
+        List<String> blockIds = new ArrayList<>();
+
+        // For each block copy the block using a signed URL.
+        for (int j = 0; j < blocks.size(); j++) {
+
+            Block block = blocks.get(j);
+            long blockSize = block.getSize();
+            BlobRange range = new BlobRange(rangeMax, blockSize);
+            rangeMax += blockSize;
+
+            blockIds.add(block.getName());
+            destBlobClient.stageBlockFromUrl(block.getName(), blobUrl.toString(), range);
         }
 
-        return cloudBlockBlob;
+        destBlobClient.commitBlockList(blockIds, true);
+    }
+
+
+    private int getBlockSize(long fileSize, int maxBlockSize) {
+
+        int blockSize = maxBlockSize * MEGABYTES_TO_BYTES_MULTIPLIER;
+
+        long sizePerThread = (long) Math.floor(fileSize / 4.0);
+
+        if (sizePerThread < blockSize) {
+            blockSize = (int) (sizePerThread / 4);
+        }
+
+        blockSize = blockSize == 0 ? 4 : blockSize;
+
+        return blockSize;
     }
 
 
@@ -662,26 +679,11 @@ public class AzFileObject extends AbstractFileObject {
         AzFileObject azDestinationFileObject = (AzFileObject) destinationFileObject;
 
         String sourceAccountName = getAccountName(azSourceFileObject);
-
         String destinationAccountName = getAccountName(azDestinationFileObject);
 
         return sourceAccountName != null
                 && destinationAccountName != null
                 && sourceAccountName.equals(destinationAccountName);
-    }
-
-
-    /**
-     * Returns an account name from given azure file object
-     *
-     * @param azFileObject
-     * @return
-     */
-    private String getAccountName(AzFileObject azFileObject) {
-
-        AzFileSystem azFileSystem = (AzFileSystem) azFileObject.getFileSystem();
-
-        return azFileSystem.getClient() != null ? azFileSystem.getClient().getCredentials().getAccountName() : null;
     }
 
 
@@ -701,34 +703,56 @@ public class AzFileObject extends AbstractFileObject {
     /**
      * Generate signed url to directly access file.
      *
-     * @param duration - in seconds
+     * @param durationHrs - SAS validity duration in hours
      * @return
      * @throws Exception
      */
-    public URL signedURL(int duration) throws Exception {
+    private URL getSignedURL(int durationHrs, String url) throws Exception {
 
-        if (isNull(this.currBlob)) {
-            this.doAttach();
+        OffsetDateTime offsetDateTime = OffsetDateTime.now().plusHours(durationHrs);
+        BlobSasPermission sasPermission = BlobSasPermission.parse("r");
+
+        BlobServiceSasSignatureValues signatureValues = new BlobServiceSasSignatureValues(offsetDateTime, sasPermission);
+
+        signatureValues.setStartTime(OffsetDateTime.now().minusMinutes(10));
+        signatureValues.setProtocol(SasProtocol.HTTPS_ONLY);
+
+        if (url == null) {
+            // Sign the url for the this object
+            url = this.blobClient.getBlobUrl();
         }
 
-        if (nonNull(this.currBlob)) {
-            Date now = new Date();
-            calendar.setTime(now);
-            calendar.add(Calendar.SECOND, duration);
+        url = url + "?" + blobClient.generateSas(signatureValues);
 
-            SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
-            policy.setPermissions(EnumSet.of(SharedAccessBlobPermissions.READ));
-            policy.setSharedAccessStartTime(now);
-            policy.setSharedAccessExpiryTime(calendar.getTime());
-
-            String signedSignature = this.currBlob.generateSharedAccessSignature(policy, null);
-
-            return new URL(this.currBlob.getUri().toURL() + "?" + signedSignature);
-        }
-
-        return null;
+        return new URL(url);
     }
 
 
-    private Calendar calendar = new GregorianCalendar();
+    public URL getSignedURL(int durationHrs) throws Exception {
+        return getSignedURL(durationHrs, null);
+    }
+
+    /**
+     * Returns an account name from given azure file object
+     *
+     * @param azFileObject
+     * @return
+     */
+    private String getAccountName(AzFileObject azFileObject) {
+
+        AzFileSystem azFileSystem = (AzFileSystem) azFileObject.getFileSystem();
+
+        return blobClient.getAccountName();
+    }
+
+
+    private BlobProperties getBlobProperties() throws Exception {
+
+        if (blobProperties == null) {
+            doAttach();
+            blobProperties = blobClient.getProperties();
+        }
+
+        return blobProperties;
+    }
 }
