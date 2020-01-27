@@ -1,6 +1,6 @@
 echo "Determining version number for publication"
-
 echo "Looking for an existing release tag against this commit"
+
 VERSION=$(git describe --match release/* --exact-match 2>&1)
 if [ $? -ne 0 ]
 then
