@@ -2,12 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.dalet.sludev.commons</groupId>
+    <groupId>com.dalet</groupId>
     <artifactId>vfs-azure</artifactId>
     <version>${revision}</version>
 
-    <name>com.dalet.sludev.commons:vfs-azure</name>
-    <description>Azure Blob Storage Provider for the Apache Commons VFS library (Dalet fork).</description>
+    <name>com.dalet:vfs-azure</name>
+    <description>Azure Blob Storage Provider for the Apache Commons VFS library</description>
     <url>https://github.com/dalet-oss/vfs-azure</url>
 
     <licenses>
