@@ -2,12 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.dalet.sludev.commons</groupId>
+    <groupId>com.dalet</groupId>
     <artifactId>vfs-azure</artifactId>
     <version>${revision}</version>
 
-    <name>com.dalet.sludev.commons:vfs-azure</name>
-    <description>Azure Blob Storage Provider for the Apache Commons VFS library (Dalet fork).</description>
+    <name>com.dalet:vfs-azure</name>
+    <description>Azure Blob Storage Provider for the Apache Commons VFS library</description>
     <url>https://github.com/dalet-oss/vfs-azure</url>
 
     <licenses>
@@ -32,7 +32,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <revision>1.3.11-SNAPSHOT</revision>
+        <revision>1.3.12-SNAPSHOT</revision>
     </properties>
 
     <scm>
@@ -148,21 +148,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
-            <version>4.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>commons-net</groupId>
-            <artifactId>commons-net</artifactId>
-            <version>3.6</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-storage-blob</artifactId>
-            <version>12.2.0-beta.1</version>
+            <version>12.3.0</version>
         </dependency>
 
         <dependency>

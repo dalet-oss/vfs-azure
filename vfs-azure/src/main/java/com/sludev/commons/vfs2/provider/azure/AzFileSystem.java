@@ -18,13 +18,14 @@ package com.sludev.commons.vfs2.provider.azure;
 
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.common.StorageSharedKeyCredential;
 import org.apache.commons.vfs2.Capability;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystem;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.provider.AbstractFileName;
 import org.apache.commons.vfs2.provider.AbstractFileSystem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
@@ -35,40 +36,32 @@ import java.util.Collection;
  */
 public class AzFileSystem extends AbstractFileSystem implements FileSystem {
 
+    private static final Logger log = LoggerFactory.getLogger(AzFileSystem.class);
+
     private final BlobContainerAsyncClient blobContainerAsyncClient;
     private final BlobContainerClient blobContainerClient;
-    private final StorageSharedKeyCredential sharedKeyCredential;
 
 
     protected AzFileSystem(
             final AzFileName rootName,
             final BlobContainerAsyncClient blobContainerAsyncClient,
             final BlobContainerClient blobContainerClient,
-            final StorageSharedKeyCredential sharedKeyCredential,
             final FileSystemOptions fileSystemOptions) {
 
         super(rootName, null, fileSystemOptions);
 
         this.blobContainerAsyncClient = blobContainerAsyncClient;
         this.blobContainerClient = blobContainerClient;
-        this.sharedKeyCredential = sharedKeyCredential;
     }
 
-
-    protected BlobContainerAsyncClient getContainerAsyncClient() {
+    protected BlobContainerAsyncClient getContainerAsyncClient()
+    {
         return blobContainerAsyncClient;
     }
-
-
-    protected BlobContainerClient getContainerClient() {
+    protected BlobContainerClient getContainerClient()
+    {
         return blobContainerClient;
     }
-
-
-    protected StorageSharedKeyCredential getSharedKeyCredential() {
-        return sharedKeyCredential;
-    }
-
 
     @Override
     protected FileObject createFile(AbstractFileName name) throws Exception {
@@ -77,7 +70,9 @@ public class AzFileSystem extends AbstractFileSystem implements FileSystem {
 
 
     @Override
-    protected void addCapabilities(Collection<Capability> caps) {
+    protected void addCapabilities(Collection<Capability> caps)
+    {
         caps.addAll(AzFileProvider.capabilities);
     }
+
 }
