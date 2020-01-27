@@ -23,6 +23,7 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
 import com.azure.storage.blob.models.BlobRange;
+import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.Block;
 import com.azure.storage.blob.models.BlockList;
@@ -222,6 +223,10 @@ public class AzFileObject extends AbstractFileObject {
                 res = FileType.FILE;
             }
         }
+        else if (fileName.getType() == FileType.FOLDER) {
+            // This is an empty folder.
+            res = FileType.FOLDER;
+        }
         else {
             res = FileType.IMAGINARY;
         }
@@ -310,13 +315,13 @@ public class AzFileObject extends AbstractFileObject {
     /**
      * Callback for getting an OutputStream for writing into Azure Blob Storage file.
      *
-     * @param bAppend bAppend true if the file should be appended to, false if it should be overwritten.
+     * @param overwrite true if the file should be overwritten.
      * @return
      * @throws Exception
      */
     @Override
-    protected OutputStream doGetOutputStream(boolean bAppend) throws Exception {
-        return blobClient.getBlockBlobClient().getBlobOutputStream();
+    protected OutputStream doGetOutputStream(boolean overwrite) throws Exception {
+        return blobClient.getBlockBlobClient().getBlobOutputStream(true);
     }
 
 
@@ -585,8 +590,12 @@ public class AzFileObject extends AbstractFileObject {
             ParallelTransferOptions opts =
                     new ParallelTransferOptions(blockSize, 5, null);
 
+            BlobRequestConditions requestConditions = new BlobRequestConditions(); //.setIfNoneMatch(Constants.HeaderConstants
+            // .ETAG_WILDCARD);
+
+
             BlobOutputStream bos = destBlobClient.getBlockBlobClient().getBlobOutputStream(
-                    opts, null, null, null, null);
+                    opts, null, null, null, requestConditions);
 
             InputStream is = srcFile.getContent().getInputStream();
 
@@ -707,7 +716,9 @@ public class AzFileObject extends AbstractFileObject {
      * @return
      * @throws Exception
      */
-    private URL getSignedURL(int durationHrs, String url) throws Exception {
+    public URL getSignedURL(int durationHrs) throws Exception {
+
+        doAttach();
 
         OffsetDateTime offsetDateTime = OffsetDateTime.now().plusHours(durationHrs);
         BlobSasPermission sasPermission = BlobSasPermission.parse("r");
@@ -717,20 +728,12 @@ public class AzFileObject extends AbstractFileObject {
         signatureValues.setStartTime(OffsetDateTime.now().minusMinutes(10));
         signatureValues.setProtocol(SasProtocol.HTTPS_ONLY);
 
-        if (url == null) {
-            // Sign the url for the this object
-            url = this.blobClient.getBlobUrl();
-        }
-
-        url = url + "?" + blobClient.generateSas(signatureValues);
+        // Sign the url for the this object
+        String url = this.blobClient.getBlobUrl() + "?" + blobClient.generateSas(signatureValues);
 
         return new URL(url);
     }
 
-
-    public URL getSignedURL(int durationHrs) throws Exception {
-        return getSignedURL(durationHrs, null);
-    }
 
     /**
      * Returns an account name from given azure file object

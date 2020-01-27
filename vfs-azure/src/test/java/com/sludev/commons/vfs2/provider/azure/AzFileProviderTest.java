@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.RandomAccessFile;
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -140,6 +141,17 @@ public class AzFileProviderTest
     }
 
 
+    private static File createLargeFile() throws Exception {
+
+        File file = File.createTempFile("uploadFile02", ".tmp");
+
+        RandomAccessFile raf = new RandomAccessFile(file, "rwd");
+        raf.setLength(300 * 1024 * 1024);
+
+        return file;
+    }
+
+
     @Test
     public void testUploadFile() throws Exception {
 
@@ -175,7 +187,7 @@ public class AzFileProviderTest
         assertTrue(destFileObject.exists());
 
         // Setup and copy AZBS to AZBS
-        String destUri2 = azUri + "test01-copyz.tmp";
+        String destUri2 = azUri + "test01-copy.tmp";
 
         FileObject destCopyFileObject = fileSystemManager.resolveFile(destUri2, fileSystemOptions);
 
@@ -185,6 +197,39 @@ public class AzFileProviderTest
             assertTrue(destCopyFileObject.exists());
         }
         finally {
+            destFileObject.delete();
+            destCopyFileObject.delete();
+        }
+    }
+
+
+    @Test
+    public void testCopyBlobToBlobLarge() throws Exception {
+
+        File testFile = createLargeFile();
+
+        String destUri = azUri + "test01.tmp";
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        // Move local to AZBS
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject.exists());
+
+        // Setup and copy AZBS to AZBS
+        String destUri2 = azUri + "test01-copy.tmp";
+
+        FileObject destCopyFileObject = fileSystemManager.resolveFile(destUri2, fileSystemOptions);
+
+        destCopyFileObject.copyFrom(destFileObject, Selectors.SELECT_SELF);
+
+        try {
+            assertTrue(destCopyFileObject.exists());
+        }
+        finally {
+            srcFileObject.delete();
             destFileObject.delete();
             destCopyFileObject.delete();
         }
@@ -230,11 +275,6 @@ public class AzFileProviderTest
 
         assertEquals(FileType.FOLDER, fileType);
 
-        FileObject imaginaryFileObject = fileSystemManager.resolveFile(azUri + "/test1/", fileSystemOptions);
-        fileType = imaginaryFileObject.getType();
-
-        assertEquals(FileType.IMAGINARY, fileType);
-
         FileObject rootFileObject2 = fileSystemManager.resolveFile(azUri + "/", fileSystemOptions);
         fileType = rootFileObject2.getType();
 
@@ -245,7 +285,19 @@ public class AzFileProviderTest
 
 
     @Test
-    public void testCreateDirectory1() throws Exception {
+    public void testCreateEmptyDirectory() throws Exception {
+
+        String fileName = "testDir01/";
+        String destUri = azUri + fileName;
+
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        assertEquals(FileType.FOLDER, destFileObject.getType());
+    }
+
+
+    @Test
+    public void testCreateDirectoryWithFile() throws Exception {
 
         String fileName = "testDir01/test1.tmp";
 

@@ -26,6 +26,7 @@ import org.apache.commons.vfs2.provider.url.UrlFileNameParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * Used for defining / parsing a provided FileName object.
  *
@@ -82,9 +83,12 @@ public class AzFileNameParser extends UrlFileNameParser {
             }
         }
 
-        FileType fileType = FileType.FOLDER;
+        FileType fileType = FileType.IMAGINARY;
 
-        if (!absPath.endsWith("/")) {
+        if (uri.endsWith("/")) {
+            fileType = FileType.FOLDER;
+        }
+        else if (!absPath.endsWith("/")) {
             fileType = FileType.FILE;
         }
 
