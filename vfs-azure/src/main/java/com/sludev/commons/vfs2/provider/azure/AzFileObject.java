@@ -35,8 +35,6 @@ import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlobOutputStream;
 import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.sas.SasProtocol;
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.vfs2.FileNotFolderException;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSelector;
@@ -68,40 +66,18 @@ public class AzFileObject extends AbstractFileObject {
 
     private static final Logger log = LoggerFactory.getLogger(AzFileObject.class);
 
-    public static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
+    public static final long MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
 
     public static final int DEFAULT_UPLOAD_BLOCK_SIZE_MB = 4;
-    public static final int BLOB_COPY_THRESHOLD_MB = 256 * 1024 * 1024;
+    public static final long STREAM_BUFFER_SIZE_MB = 4 * MEGABYTES_TO_BYTES_MULTIPLIER;
+    public static final long BLOB_COPY_THRESHOLD_MB = 256 * MEGABYTES_TO_BYTES_MULTIPLIER;
 
-    public static final long AZURE_MAX_BLOCKS = 50000L;
-    public static final long AZURE_MAX_BLOCK_SIZE_MB = 100L;
+    public static final int AZURE_MAX_BLOCKS = 50000;
+    public static final int AZURE_MAX_BLOCK_SIZE_MB = 100;
     public static final long AZURE_MAX_BLOB_SIZE_BYTES = AZURE_MAX_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER * AZURE_MAX_BLOCKS;
-
-    private static final float BLOCK_SIZE_SCALER =
-            (float) AZURE_MAX_BLOCK_SIZE_MB / (float) (AZURE_MAX_BLOCK_SIZE_MB * AZURE_MAX_BLOCKS);
-
-    private static Boolean ENABLE_AZURE_STORAGE_LOG = false;
 
 
     private FileType fileType = null;
-
-    static {
-
-        String uploadBlockSizeProperty = System.getProperty("azure.upload.block.size");
-
-//        UPLOAD_BLOCK_SIZE_MB = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE_MB); //*
-        // MEGABYTES_TO_BYTES_MULTIPLIER;
-
-        String enableAzureLogging = System.getProperty("azure.enable.logging");
-
-        if (StringUtils.isNotEmpty(enableAzureLogging)) {
-            ENABLE_AZURE_STORAGE_LOG = BooleanUtils.toBoolean(enableAzureLogging);
-        }
-
-//        log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE);
-    }
-
-//    private final AzFileSystem fileSystem;
 
     private BlobContainerClient blobContainerClient;
     private BlobContainerAsyncClient blobContainerAsyncClient;
@@ -122,7 +98,6 @@ public class AzFileObject extends AbstractFileObject {
 
         super(fileName, fileSystem);
 
-//        this.fileSystem = fileSystem;
         blobContainerAsyncClient = fileSystem.getContainerAsyncClient();
         blobContainerClient = fileSystem.getContainerClient();
         blobProperties = null;
@@ -606,7 +581,7 @@ public class AzFileObject extends AbstractFileObject {
             InputStream is = srcFile.getContent().getInputStream();
 
             try {
-                byte[] buffer = new byte[4 * 1024 *1024];
+                byte[] buffer = new byte[(int) STREAM_BUFFER_SIZE_MB];
 
                 for (int len; (len = is.read(buffer)) != -1; ) {
                     bos.write(buffer, 0, len);
@@ -661,6 +636,15 @@ public class AzFileObject extends AbstractFileObject {
     }
 
 
+    /**
+     * Returns the block size depending on the size of the file to be uploaded.
+     * A default block size of 4MB is used until the file size is smaller than
+     * 4mb * 50000, after this block size is scaled so that 50000 blocks are used.
+     *
+     * @param fileSize
+     * @return
+     * @throws FileSystemException
+     */
     protected int getBlockSize(long fileSize) throws FileSystemException {
 
         if (fileSize > AZURE_MAX_BLOB_SIZE_BYTES) {
@@ -670,10 +654,10 @@ public class AzFileObject extends AbstractFileObject {
         long dynamicBlockSizeThreshold = (DEFAULT_UPLOAD_BLOCK_SIZE_MB * AZURE_MAX_BLOCKS) * MEGABYTES_TO_BYTES_MULTIPLIER;
 
         if (fileSize < dynamicBlockSizeThreshold) {
-            return DEFAULT_UPLOAD_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER;
+            return (int) (DEFAULT_UPLOAD_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER);
         }
         else {
-            return (int) Math.ceil(BLOCK_SIZE_SCALER * fileSize);
+            return (int) Math.ceil((float) fileSize / (float) AZURE_MAX_BLOCKS);
         }
     }
 
