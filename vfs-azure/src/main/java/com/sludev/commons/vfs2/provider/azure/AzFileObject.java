@@ -37,7 +37,6 @@ import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.sas.SasProtocol;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.vfs2.FileNotFolderException;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSelector;
@@ -68,9 +67,19 @@ import java.util.List;
 public class AzFileObject extends AbstractFileObject {
 
     private static final Logger log = LoggerFactory.getLogger(AzFileObject.class);
-    private static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
-    public static final int BLOB_COPY_THRESHOLD = 256 * 1024 * 1024;
-    static Integer UPLOAD_BLOCK_SIZE = 20; //in MB's
+
+    public static final int MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
+
+    public static final int DEFAULT_UPLOAD_BLOCK_SIZE_MB = 4;
+    public static final int BLOB_COPY_THRESHOLD_MB = 256 * 1024 * 1024;
+
+    public static final long AZURE_MAX_BLOCKS = 50000L;
+    public static final long AZURE_MAX_BLOCK_SIZE_MB = 100L;
+    public static final long AZURE_MAX_BLOB_SIZE_BYTES = AZURE_MAX_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER * AZURE_MAX_BLOCKS;
+
+    private static final float BLOCK_SIZE_SCALER =
+            (float) AZURE_MAX_BLOCK_SIZE_MB / (float) (AZURE_MAX_BLOCK_SIZE_MB * AZURE_MAX_BLOCKS);
+
     private static Boolean ENABLE_AZURE_STORAGE_LOG = false;
 
 
@@ -80,7 +89,7 @@ public class AzFileObject extends AbstractFileObject {
 
         String uploadBlockSizeProperty = System.getProperty("azure.upload.block.size");
 
-        UPLOAD_BLOCK_SIZE = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE); //*
+//        UPLOAD_BLOCK_SIZE_MB = (int) NumberUtils.toLong(uploadBlockSizeProperty, UPLOAD_BLOCK_SIZE_MB); //*
         // MEGABYTES_TO_BYTES_MULTIPLIER;
 
         String enableAzureLogging = System.getProperty("azure.enable.logging");
@@ -89,15 +98,17 @@ public class AzFileObject extends AbstractFileObject {
             ENABLE_AZURE_STORAGE_LOG = BooleanUtils.toBoolean(enableAzureLogging);
         }
 
-        log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE);
+//        log.info("Azure upload block size : {} Bytes, concurrent request count: {}", UPLOAD_BLOCK_SIZE);
     }
 
-    private final AzFileSystem fileSystem;
+//    private final AzFileSystem fileSystem;
+
     private BlobContainerClient blobContainerClient;
     private BlobContainerAsyncClient blobContainerAsyncClient;
     private BlobClient blobClient;
     private BlobAsyncClient blobAsyncClient;
     private BlobProperties blobProperties;
+
     private boolean isAttached = false;
 
 
@@ -107,12 +118,11 @@ public class AzFileObject extends AbstractFileObject {
      * @param fileName
      * @param fileSystem
      */
-    protected AzFileObject(final AbstractFileName fileName, final AzFileSystem fileSystem) {
+    public AzFileObject(final AbstractFileName fileName, final AzFileSystem fileSystem) {
 
         super(fileName, fileSystem);
 
-        this.fileSystem = fileSystem;
-
+//        this.fileSystem = fileSystem;
         blobContainerAsyncClient = fileSystem.getContainerAsyncClient();
         blobContainerClient = fileSystem.getContainerClient();
         blobProperties = null;
@@ -534,7 +544,7 @@ public class AzFileObject extends AbstractFileObject {
                     }
                     else if (canCopyServerSide(srcFile, destFile)) {
 
-                        if (srcFile.getContent().getSize() > BLOB_COPY_THRESHOLD) {
+                        if (srcFile.getContent().getSize() > BLOB_COPY_THRESHOLD_MB) {
                             doCopyFromUrl((AzFileObject) srcFile);
                         }
                         else {
@@ -583,16 +593,12 @@ public class AzFileObject extends AbstractFileObject {
 
             BlobClient destBlobClient = blobContainerClient.getBlobClient(destFilename);
 
-//                            int blockSize = getBlockSize(srcFile.getContent().getSize(), UPLOAD_BLOCK_SIZE);
-
-            int blockSize = 4 * 1024 *1024;
+            int blockSize = getBlockSize(srcFile.getContent().getSize());
 
             ParallelTransferOptions opts =
                     new ParallelTransferOptions(blockSize, 5, null);
 
-            BlobRequestConditions requestConditions = new BlobRequestConditions(); //.setIfNoneMatch(Constants.HeaderConstants
-            // .ETAG_WILDCARD);
-
+            BlobRequestConditions requestConditions = new BlobRequestConditions();
 
             BlobOutputStream bos = destBlobClient.getBlockBlobClient().getBlobOutputStream(
                     opts, null, null, null, requestConditions);
@@ -655,19 +661,20 @@ public class AzFileObject extends AbstractFileObject {
     }
 
 
-    private int getBlockSize(long fileSize, int maxBlockSize) {
+    protected int getBlockSize(long fileSize) throws FileSystemException {
 
-        int blockSize = maxBlockSize * MEGABYTES_TO_BYTES_MULTIPLIER;
-
-        long sizePerThread = (long) Math.floor(fileSize / 4.0);
-
-        if (sizePerThread < blockSize) {
-            blockSize = (int) (sizePerThread / 4);
+        if (fileSize > AZURE_MAX_BLOB_SIZE_BYTES) {
+             throw new FileSystemException("File size exceeds Azure Blob size limit");
         }
 
-        blockSize = blockSize == 0 ? 4 : blockSize;
+        long dynamicBlockSizeThreshold = (DEFAULT_UPLOAD_BLOCK_SIZE_MB * AZURE_MAX_BLOCKS) * MEGABYTES_TO_BYTES_MULTIPLIER;
 
-        return blockSize;
+        if (fileSize < dynamicBlockSizeThreshold) {
+            return DEFAULT_UPLOAD_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER;
+        }
+        else {
+            return (int) Math.ceil(BLOCK_SIZE_SCALER * fileSize);
+        }
     }
 
 

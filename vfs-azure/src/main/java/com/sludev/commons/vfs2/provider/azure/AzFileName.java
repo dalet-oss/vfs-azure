@@ -37,7 +37,8 @@ public class AzFileName extends AbstractFileName {
      * @param fileType     The FileType.
      * @return The FileName.
      */
-    @Override public FileName createName(String absolutePath, FileType fileType) {
+    @Override
+    public FileName createName(String absolutePath, FileType fileType) {
 
         return new AzFileName(getScheme(), this.account, this.container, absolutePath, fileType);
     }
@@ -53,7 +54,8 @@ public class AzFileName extends AbstractFileName {
      * @param buffer      A StringBuilder to use to construct the URI.
      * @param addPassword true if the password should be added, false otherwise.
      */
-    @Override protected void appendRootUri(StringBuilder buffer, boolean addPassword) {
+    @Override
+    protected void appendRootUri(StringBuilder buffer, boolean addPassword) {
 
         buffer.append(getScheme());
         buffer.append("://");

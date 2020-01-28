@@ -156,12 +156,12 @@ public class AzFileProvider extends AbstractOriginatingFileProvider {
     protected FileSystem doCreateFileSystem(FileName rootName, FileSystemOptions fileSystemOptions)
             throws FileSystemException {
 
-        AzFileName fileName = (AzFileName) rootName;
+        AzFileName azRootName = (AzFileName) rootName;
 
         AzFileSystem fileSystem;
 
-        FileSystemOptions filesSystemOptions = (fileSystemOptions != null) ? fileSystemOptions : getDefaultFileSystemOptions();
-        UserAuthenticator ua = DefaultFileSystemConfigBuilder.getInstance().getUserAuthenticator(filesSystemOptions);
+        FileSystemOptions resolvedFileSystemOptions = (fileSystemOptions != null) ? fileSystemOptions : getDefaultFileSystemOptions();
+        UserAuthenticator ua = DefaultFileSystemConfigBuilder.getInstance().getUserAuthenticator(resolvedFileSystemOptions);
 
 
         UserAuthenticationData authData = null;
@@ -177,8 +177,8 @@ public class AzFileProvider extends AbstractOriginatingFileProvider {
 
             StorageSharedKeyCredential storageCreds = new StorageSharedKeyCredential(accountName, accountKey);
 
-            String endPoint = String.format(Locale.ROOT, "https://%s.blob.core.windows.net/%s", fileName.getAccount(),
-                    fileName.getContainer());
+            String endPoint = String.format(Locale.ROOT, "https://%s.blob.core.windows.net/%s", azRootName.getAccount(),
+                    azRootName.getContainer());
 
             BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
                     .endpoint(endPoint)
@@ -190,7 +190,7 @@ public class AzFileProvider extends AbstractOriginatingFileProvider {
                     .credential(storageCreds)
                     .buildClient();
 
-            fileSystem = new AzFileSystem(fileName, blobContainerAsyncClient, blobContainerClient, fileSystemOptions);
+            fileSystem = new AzFileSystem(azRootName, blobContainerAsyncClient, blobContainerClient, fileSystemOptions);
         }
         finally {
             UserAuthenticatorUtils.cleanup(authData);

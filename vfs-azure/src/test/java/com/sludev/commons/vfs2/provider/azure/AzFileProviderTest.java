@@ -19,6 +19,7 @@ package com.sludev.commons.vfs2.provider.azure;
 import org.apache.commons.vfs2.FileContent;
 import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileObject;
+import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.FileType;
 import org.apache.commons.vfs2.Selectors;
@@ -34,7 +35,9 @@ import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
+import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.mockito.runners.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +51,7 @@ import java.util.Properties;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 
 /**
@@ -55,6 +59,7 @@ import static org.junit.Assert.assertTrue;
  * @author kervin, lspiteri
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
+@RunWith(MockitoJUnitRunner.class)
 public class AzFileProviderTest
 {
     private static final Logger log = LoggerFactory.getLogger(AzFileProviderTest.class);
@@ -123,9 +128,6 @@ public class AzFileProviderTest
     private static File createSmallFile() throws Exception {
 
         File file = File.createTempFile("uploadFile01", ".tmp");
-
-//        RandomAccessFile raf = new RandomAccessFile(file, "rwd");
-//        raf.setLength(1 * 1024 * 1024);
 
         try (FileWriter fw = new FileWriter(file)) {
 
@@ -395,7 +397,6 @@ public class AzFileProviderTest
         String destUri = azUri + "uploadFile02";
 
         FileObject fileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
-
         FileObject[] children = fileObject.getChildren();
 
         assertTrue(children.length > 0);
@@ -424,7 +425,6 @@ public class AzFileProviderTest
         destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
 
         FileContent content = destFileObject.getContent();
-
         long size = content.getSize();
 
         assertTrue( size > 0);
@@ -434,6 +434,27 @@ public class AzFileProviderTest
         assertTrue(modTime > 0);
 
         destFileObject.delete();
+    }
+
+
+    @Test
+    public void testGetBlockSize() {
+
+        try {
+            String destUri = azUri + "uploadFile02";
+            AzFileObject fileObject = (AzFileObject) fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+            // 100 MB
+            int blockSize = fileObject.getBlockSize(100 * AzFileObject.MEGABYTES_TO_BYTES_MULTIPLIER);
+            assertEquals(AzFileObject.DEFAULT_UPLOAD_BLOCK_SIZE_MB * AzFileObject.MEGABYTES_TO_BYTES_MULTIPLIER, blockSize);
+
+            // 250 GB
+            blockSize = fileObject.getBlockSize((250L * 1024L) * AzFileObject.MEGABYTES_TO_BYTES_MULTIPLIER);
+            assertEquals(5368709, blockSize);
+        }
+        catch (FileSystemException e) {
+            fail();
+        }
     }
 
 
