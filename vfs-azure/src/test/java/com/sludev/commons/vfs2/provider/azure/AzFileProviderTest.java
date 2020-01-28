@@ -35,9 +35,7 @@ import org.junit.FixMethodOrder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
-import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
-import org.mockito.runners.MockitoJUnitRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +57,6 @@ import static org.junit.Assert.fail;
  * @author kervin, lspiteri
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-@RunWith(MockitoJUnitRunner.class)
 public class AzFileProviderTest
 {
     private static final Logger log = LoggerFactory.getLogger(AzFileProviderTest.class);
