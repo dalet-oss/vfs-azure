@@ -25,28 +25,18 @@ import org.junit.runner.Description;
  *
  * @author kervin
  */
-public class AzTestWatcher extends TestWatcher
-{
-    private static final Logger log 
-                                = LoggerFactory.getLogger(AzTestWatcher.class);
-    
-    @Override
-    protected void failed(Throwable e, Description description) 
-    {
-        log.info( 
-                String.format("%s failed %s", 
-                              description.getDisplayName(), e.getMessage()));
+public class AzTestWatcher extends TestWatcher {
+    private static final Logger log = LoggerFactory.getLogger(AzTestWatcher.class);
 
+    @Override
+    protected void failed(Throwable e, Description description) {
+        log.info(String.format("%s failed %s", description.getDisplayName(), e.getMessage()));
         super.failed(e, description);
     }
 
     @Override
-    protected void succeeded(Description description) 
-    {
-        log.info( 
-                String.format("%s succeeded.", 
-                              description.getDisplayName()));
-
+    protected void succeeded(Description description) {
+        log.info(String.format("%s succeeded.", description.getDisplayName()));
         super.succeeded(description);
     }
 }

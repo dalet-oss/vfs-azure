@@ -28,8 +28,8 @@ import org.slf4j.LoggerFactory;
  *
  * @author kervin
  */
-public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder
-{
+public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder {
+
     private static final Logger log = LoggerFactory.getLogger(AzFileSystemConfigBuilder.class);
     private static final AzFileSystemConfigBuilder BUILDER = new AzFileSystemConfigBuilder();
 
@@ -38,7 +38,7 @@ public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder
     {
         return AzFileSystem.class;
     }
-    
+
     protected AzFileSystemConfigBuilder(String prefix)
     {
         super(prefix);
@@ -48,31 +48,30 @@ public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder
     {
         super("azure.");
     }
-    
+
     public static AzFileSystemConfigBuilder getInstance()
     {
         return BUILDER;
     }
-    
+
     /**
      * Sets the user authenticator to get authentication informations.
+     *
      * @param opts The FileSystemOptions.
      * @param userAuthenticator The UserAuthenticator.
      * @throws FileSystemException if an error occurs setting the UserAuthenticator.
      */
     public void setUserAuthenticator(FileSystemOptions opts, UserAuthenticator userAuthenticator)
-            throws FileSystemException
-    {
+            throws FileSystemException {
         setParam(opts, "userAuthenticator", userAuthenticator);
     }
-    
+
     /**
      * @see #setUserAuthenticator
      * @param opts The FileSystemOptions.
      * @return The UserAuthenticator.
      */
-    public UserAuthenticator getUserAuthenticator(FileSystemOptions opts)
-    {
+    public UserAuthenticator getUserAuthenticator(FileSystemOptions opts) {
         return (UserAuthenticator) getParam(opts, "userAuthenticator");
     }
 }
