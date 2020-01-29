@@ -638,7 +638,7 @@ public class AzFileObject extends AbstractFileObject {
 
     /**
      * Returns the block size depending on the size of the file to be uploaded.
-     * A default block size of 4MB is used until the file size is smaller than
+     * A default block size of 4MB is used until the file size is larger than
      * 4mb * 50000, after this block size is scaled so that 50000 blocks are used.
      *
      * @param fileSize
