@@ -63,7 +63,12 @@ public class AzFileNameParser extends UrlFileNameParser {
         String scheme = normalizedUri.substring(0, normalizedUri.indexOf(':'));
 
         String[] s = normalizedUri.split("/");
-        String account = s[1].substring(0, s[1].indexOf('.'));
+
+        String account = null;
+        if (s[1].contains(".")) {
+            account = s[1].substring(0, s[1].indexOf('.'));
+        }
+
         String container = s[2];
 
         String absPath = "/";
