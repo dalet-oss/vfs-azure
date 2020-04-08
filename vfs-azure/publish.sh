@@ -1,10 +1,10 @@
 echo "Determining version number for publication"
 echo "Looking for an existing release tag against this commit"
 
-VERSION=$(git describe --match release/* --exact-match 2>&1)
+VERSION=$(git describe --tags --match release/* --exact-match 2>&1)
 if [ $? -ne 0 ]
 then
-  LAST=$(git describe --match release/* 2>&1)
+  LAST=$(git describe --tags --match release/* 2>&1)
   if [ $? -ne 0 ]
   then
     echo "No release tags found at all; bail out"
