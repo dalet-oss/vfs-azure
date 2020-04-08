@@ -32,6 +32,7 @@ import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.net.io.CopyStreamListener;
+import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileNotFolderException;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSelector;
@@ -41,7 +42,6 @@ import org.apache.commons.vfs2.NameScope;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.provider.AbstractFileName;
 import org.apache.commons.vfs2.provider.AbstractFileObject;
-import org.apache.commons.vfs2.provider.URLFileName;
 import org.apache.tika.Tika;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -131,14 +131,13 @@ public class AzFileObject extends AbstractFileObject {
         Pair<String, String> res = null;
 
         try {
-            URLFileName currName = (URLFileName) getName();
+            FileName currName = getName();
 
             String currNameStr = currName.getPath();
             currNameStr = StringUtils.stripStart(currNameStr, "/");
 
             if (StringUtils.isBlank(currNameStr)) {
-                log.warn(
-                        String.format("getContainerAndPath() : Path '%s' does not appear to be valid", currNameStr));
+                log.warn(String.format("getContainerAndPath() : Path '%s' does not appear to be valid", currNameStr));
 
                 return null;
             }
@@ -154,8 +153,7 @@ public class AzFileObject extends AbstractFileObject {
             res = new ImmutablePair<>(resArray[0], resArray[1]);
         }
         catch (Exception ex) {
-            log.error(
-                    String.format("getContainerAndPath() : Path does not appear to be valid"), ex);
+            log.error(String.format("getContainerAndPath() : Path does not appear to be valid"), ex);
         }
 
         return res;
@@ -176,12 +174,10 @@ public class AzFileObject extends AbstractFileObject {
 
         try {
             // Check the container.  Force a network call so we can fail-fast
-            currContainer
-                    = fileSystem.getClient().getContainerReference(path.getLeft());
+            currContainer = fileSystem.getClient().getContainerReference(path.getLeft());
         }
         catch (RuntimeException ex) {
-            log.error(String.format("doAttach() Exception for '%s' : '%s'",
-                    path.getLeft(), path.getRight()), ex);
+            log.error(String.format("doAttach() Exception for '%s' : '%s'", path.getLeft(), path.getRight()), ex);
 
             throw ex;
         }
@@ -205,7 +201,7 @@ public class AzFileObject extends AbstractFileObject {
 
         FileType res;
 
-        URLFileName currName = (URLFileName) getName();
+        FileName currName = getName();
 
         if (currName != null && currName.getType() == FileType.FOLDER) {
             return FileType.FOLDER;
@@ -293,50 +289,6 @@ public class AzFileObject extends AbstractFileObject {
 
         return res;
     }
-
-    //    @Override
-    //    protected FileObject[] doListChildrenResolved() throws Exception
-    //    {
-    //        FileObject[] res = null;
-    //
-    //        Pair<String, String> path = getContainerAndPath();
-    //
-    //        String prefix = path.getRight();
-    //        if( prefix.endsWith("/") == false )
-    //        {
-    //            // We need folders ( prefixes ) to end with a slash
-    //            prefix += "/";
-    //        }
-    //
-    //        Iterable<ListBlobItem> blobs = null;
-    //        if( prefix.equals("/") )
-    //        {
-    //            // Special root path case. List the root blobs with no prefix
-    //            blobs = currContainer.listBlobs();
-    //        }
-    //        else
-    //        {
-    //            blobs = currContainer.listBlobs(prefix);
-    //        }
-    //
-    //        List<ListBlobItem> blobList = new ArrayList<>();
-    //
-    //        // Pull it all in memory and work from there
-    //        CollectionUtils.addAll(blobList, blobs);
-    //        ArrayList<AzFileObject> resList = new ArrayList<>();
-    //        for(ListBlobItem currBlobItem : blobList )
-    //        {
-    //            String currBlobStr = currBlobItem.getUri().getPath();
-    //            AzFileObject childBlob = new AzFileObject();
-    //            FileName currName = getFileSystem().getFileSystemManager().resolveName(name, file, NameScope.CHILD);
-    //
-    //            resList.add(currBlobStr);
-    //        }
-    //
-    //        res = resList.toArray(new String[resList.size()]);
-    //
-    //        return res;
-    //    }
 
 
     private void checkBlobProperties() throws StorageException {
