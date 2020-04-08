@@ -5,6 +5,7 @@ jdk: openjdk8
 branches:
   only:
     - master
+    - /^SR-.+$/
 
 before_install:
   - cd vfs-azure
