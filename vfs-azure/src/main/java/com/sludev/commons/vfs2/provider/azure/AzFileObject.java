@@ -131,26 +131,23 @@ public class AzFileObject extends AbstractFileObject {
         Pair<String, String> res = null;
 
         try {
-            FileName currName = getName();
+            AzFileName azFileName = (AzFileName) getName();
 
-            String currNameStr = currName.getPath();
-            currNameStr = StringUtils.stripStart(currNameStr, "/");
+            String containerName = azFileName.getContainer();
 
-            if (StringUtils.isBlank(currNameStr)) {
-                log.warn(String.format("getContainerAndPath() : Path '%s' does not appear to be valid", currNameStr));
+            String path = StringUtils.stripStart(azFileName.getPath(), "/");
 
-                return null;
+            if (StringUtils.isBlank(containerName)) {
+                log.warn(String.format("getContainerAndPath() : Path '%s' does not appear to be valid", containerName));
             }
-
-            // Deal with the special case of the container root.
-            if (StringUtils.contains(currNameStr, "/") == false) {
+            else if (!StringUtils.contains(path, "/")) {
+                // Deal with the special case of the container root.
                 // Container and root
-                return new ImmutablePair<>(currNameStr, "/");
+                res = new ImmutablePair<>(containerName, "/");
             }
-
-            String[] resArray = StringUtils.split(currNameStr, "/", 2);
-
-            res = new ImmutablePair<>(resArray[0], resArray[1]);
+            else {
+                res = new ImmutablePair<>(containerName, path);
+            }
         }
         catch (Exception ex) {
             log.error(String.format("getContainerAndPath() : Path does not appear to be valid"), ex);
@@ -281,8 +278,17 @@ public class AzFileObject extends AbstractFileObject {
         CollectionUtils.addAll(blobList, blobs);
         ArrayList<String> resList = new ArrayList<>();
         for (ListBlobItem currBlob : blobList) {
-            String currBlobStr = currBlob.getUri().getPath();
-            resList.add(currBlobStr);
+            String name = currBlob.getUri().getPath();
+            String[] names = name.split("/");
+
+            String itemName = names[names.length - 1];
+
+            // Preserve folders
+            if (name.endsWith("/")) {
+                itemName = itemName + "/";
+            }
+
+            resList.add(itemName);
         }
 
         res = resList.toArray(new String[resList.size()]);

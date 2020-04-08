@@ -20,12 +20,6 @@ public class AzFileName extends AbstractFileName {
     }
 
 
-    public String getAccount() {
-
-        return account;
-    }
-
-
     public String getContainer() {
 
         return container;
