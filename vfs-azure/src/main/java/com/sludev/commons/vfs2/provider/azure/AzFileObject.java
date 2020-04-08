@@ -69,13 +69,14 @@ public class AzFileObject extends AbstractFileObject {
     public static final long MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
 
     public static final int DEFAULT_UPLOAD_BLOCK_SIZE_MB = 4;
+    public static final int TWENTY_FOUR_HOURS_IN_SEC = 24 * 60 * 60;
+
     public static final long STREAM_BUFFER_SIZE_MB = 4 * MEGABYTES_TO_BYTES_MULTIPLIER;
     public static final long BLOB_COPY_THRESHOLD_MB = 256 * MEGABYTES_TO_BYTES_MULTIPLIER;
 
     public static final int AZURE_MAX_BLOCKS = 50000;
     public static final int AZURE_MAX_BLOCK_SIZE_MB = 100;
     public static final long AZURE_MAX_BLOB_SIZE_BYTES = AZURE_MAX_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER * AZURE_MAX_BLOCKS;
-
 
     private FileType fileType = null;
 
@@ -216,7 +217,7 @@ public class AzFileObject extends AbstractFileObject {
             res = FileType.IMAGINARY;
         }
 
-        fileType = res;
+        this.fileType = res;
 
         return fileType;
     }
@@ -523,7 +524,7 @@ public class AzFileObject extends AbstractFileObject {
                             doCopyFromUrl((AzFileObject) srcFile);
                         }
                         else {
-                            URL url = ((AzFileObject) srcFile).getSignedURL(24);
+                            URL url = ((AzFileObject) srcFile).getSignedUrl(TWENTY_FOUR_HOURS_IN_SEC);
                             blobClient.copyFromUrl(url.toString());
                         }
 
@@ -616,7 +617,7 @@ public class AzFileObject extends AbstractFileObject {
         List<Block> blocks = blockList.getCommittedBlocks();
 
         long rangeMax = 0;
-        URL blobUrl = srcFile.getSignedURL(24);
+        URL blobUrl = srcFile.getSignedUrl(TWENTY_FOUR_HOURS_IN_SEC);
 
         List<String> blockIds = new ArrayList<>();
 
@@ -703,15 +704,15 @@ public class AzFileObject extends AbstractFileObject {
     /**
      * Generate signed url to directly access file.
      *
-     * @param durationHrs - SAS validity duration in hours
+     * @param durationSec - SAS validity duration in hours
      * @return
      * @throws Exception
      */
-    public URL getSignedURL(int durationHrs) throws Exception {
+    public URL getSignedUrl(int durationSec) throws Exception {
 
         doAttach();
 
-        OffsetDateTime offsetDateTime = OffsetDateTime.now().plusHours(durationHrs);
+        OffsetDateTime offsetDateTime = OffsetDateTime.now().plusSeconds(durationSec);
         BlobSasPermission sasPermission = BlobSasPermission.parse("r");
 
         BlobServiceSasSignatureValues signatureValues = new BlobServiceSasSignatureValues(offsetDateTime, sasPermission);
