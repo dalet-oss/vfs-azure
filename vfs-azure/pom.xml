@@ -46,7 +46,7 @@
             <distributionManagement>
                 <repository>
                     <id>bintray</id>
-                    <url>https://api.bintray.com/maven/dalet-oss/maven/vfs-azure/;publish=1</url>
+                    <url>https://api.bintray.com/maven/dalet-oss/maven/com.dalet.sludev.commons%3Avfs-azure/;publish=1</url>
                 </repository>
             </distributionManagement>
 
