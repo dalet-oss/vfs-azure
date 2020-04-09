@@ -140,7 +140,7 @@ public class AzFileObject extends AbstractFileObject {
             if (StringUtils.isBlank(containerName)) {
                 log.warn(String.format("getContainerAndPath() : Path '%s' does not appear to be valid", containerName));
             }
-            else if (!StringUtils.contains(path, "/")) {
+            else if (path.equals("")) {
                 // Deal with the special case of the container root.
                 // Container and root
                 res = new ImmutablePair<>(containerName, "/");
