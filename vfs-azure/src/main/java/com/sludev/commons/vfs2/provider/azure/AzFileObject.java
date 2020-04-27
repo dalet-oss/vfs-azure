@@ -376,7 +376,7 @@ public class AzFileObject extends AbstractFileObject {
     @Override
     protected void doCreateFolder() throws Exception {
 
-        log.info(String.format("doCreateFolder() called."));
+        log.debug(String.format("doCreateFolder() called."));
     }
 
 

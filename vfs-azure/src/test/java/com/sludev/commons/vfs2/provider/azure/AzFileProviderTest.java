@@ -42,7 +42,12 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Paths;
 import java.util.Properties;
 
@@ -274,6 +279,11 @@ public class AzFileProviderTest
 
         assertEquals(FileType.FOLDER, fileType);
 
+        FileObject dirFileObject2 = fileSystemManager.resolveFile(azUri + "/test", fileSystemOptions);
+        FileType fileType2 = dirFileObject2.getType();
+
+        assertEquals(FileType.FOLDER, fileType2);
+
         FileObject rootFileObject2 = fileSystemManager.resolveFile(azUri + "/", fileSystemOptions);
         fileType = rootFileObject2.getType();
 
@@ -299,7 +309,6 @@ public class AzFileProviderTest
     public void testCreateDirectoryWithFile() throws Exception {
 
         String fileName = "testDir01/test1.tmp";
-
         String destUri = azUri + fileName;
 
         FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
@@ -310,6 +319,39 @@ public class AzFileProviderTest
         assertTrue(destFileObject.exists());
 
         destFileObject.delete();
+    }
+
+
+    @Test
+    public void testCreateDirectoryWithFileStream() throws FileSystemException {
+
+        String fileName = "testDir01/dirL2/test.out";
+        String destUri = azUri + fileName;
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        byte test[] = "aaaaaaaa".getBytes();
+
+        ByteBuffer byteBuffer = ByteBuffer.wrap(test);
+
+        try (
+                OutputStream out = destFileObject.getContent().getOutputStream(false);
+                WritableByteChannel channel = Channels.newChannel(out);)
+        {
+
+            channel.write(byteBuffer);
+            destFileObject.close();
+
+            assertTrue(destFileObject.exists());
+            destFileObject.delete();
+        }
+        catch (FileSystemException e) {
+            e.printStackTrace();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
