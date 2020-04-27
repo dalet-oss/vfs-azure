@@ -30,8 +30,6 @@ import org.apache.commons.vfs2.UserAuthenticator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemConfigBuilder;
 import org.apache.commons.vfs2.provider.AbstractOriginatingFileProvider;
 import org.apache.commons.vfs2.util.UserAuthenticatorUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -97,8 +95,6 @@ import java.util.Locale;
  * @author Kervin Pierre
  */
 public class AzFileProvider extends AbstractOriginatingFileProvider {
-
-    private static final Logger log = LoggerFactory.getLogger(AzFileProvider.class);
 
     private static final FileSystemOptions DEFAULT_OPTIONS = new FileSystemOptions();
 

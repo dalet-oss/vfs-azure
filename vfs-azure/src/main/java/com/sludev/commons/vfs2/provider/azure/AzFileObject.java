@@ -191,9 +191,7 @@ public class AzFileObject extends AbstractFileObject {
 
         List<BlobItem> blobList = new ArrayList<>();
 
-        blobs.forEach(b -> {
-            blobList.add(b);
-        });
+        blobs.forEach(blobList::add);
 
         if (blobList.size() > 1) {
             res = FileType.FOLDER;
@@ -339,12 +337,9 @@ public class AzFileObject extends AbstractFileObject {
 
         List<BlobItem> blobList = new ArrayList<>();
 
-        blobs.forEach(b -> {
-            blobList.add(b);
-        });
+        blobs.forEach(blobList::add);
 
         ArrayList<String> resList = new ArrayList<>();
-
 
         for (BlobItem blobItem : blobList) {
 
@@ -361,9 +356,7 @@ public class AzFileObject extends AbstractFileObject {
             resList.add(itemName);
         }
 
-        String[] res = resList.toArray(new String[resList.size()]);
-
-        return res;
+        return resList.toArray(new String[resList.size()]);
     }
 
 
@@ -376,7 +369,7 @@ public class AzFileObject extends AbstractFileObject {
     @Override
     protected void doCreateFolder() throws Exception {
 
-        log.debug(String.format("doCreateFolder() called."));
+        log.debug("doCreateFolder() called.");
     }
 
 
@@ -403,7 +396,7 @@ public class AzFileObject extends AbstractFileObject {
     @Override
     protected long doGetLastModifiedTime() throws Exception {
 
-        if (!blobClient.exists()) {
+        if (Boolean.FALSE.equals(blobClient.exists())) {
             return 0;
         }
 
@@ -512,8 +505,6 @@ public class AzFileObject extends AbstractFileObject {
                 // We need the CloudBlockBlob for the file that we want to upload, as we were always using the
                 // CloudBlockBlob of the root directory when we were trying to copy directories, hence it was always overwriting
                 // the root directory on azure storage.
-                //                CloudBlockBlob fileCurrBlob = getFileCurrBlob(destFile);
-
                 try {
                     if (srcFile.getType().hasChildren()) {
                         destFile.createFolder();
@@ -736,8 +727,7 @@ public class AzFileObject extends AbstractFileObject {
     private String getAccountName(AzFileObject azFileObject) {
 
         AzFileSystem azFileSystem = (AzFileSystem) azFileObject.getFileSystem();
-
-        return blobClient.getAccountName();
+        return azFileSystem.getContainerClient().getAccountName();
     }
 
 

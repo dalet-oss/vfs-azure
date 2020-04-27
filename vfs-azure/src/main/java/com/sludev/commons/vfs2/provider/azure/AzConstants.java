@@ -17,18 +17,20 @@
 package com.sludev.commons.vfs2.provider.azure;
 
 /**
- * Various constants used in the provider.  Currently just the default scheme is 
+ * Various constants used in the provider.  Currently just the default scheme is
  * declared here but that might change in the future.
- * 
+ *
  * @author Kervin Pierre
  */
-public class AzConstants
-{
+public class AzConstants {
+
+    private AzConstants() {}
+
     /**
      * Azure Blob Storage API
      */
     public static final String AZBSSCHEME = "azbs";
-    
+
     /**
      * Azure File Storage API
      */

@@ -24,8 +24,6 @@ import org.apache.commons.vfs2.FileSystem;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.provider.AbstractFileName;
 import org.apache.commons.vfs2.provider.AbstractFileSystem;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 
@@ -35,8 +33,6 @@ import java.util.Collection;
  * @author Kervin Pierre
  */
 public class AzFileSystem extends AbstractFileSystem implements FileSystem {
-
-    private static final Logger log = LoggerFactory.getLogger(AzFileSystem.class);
 
     private final BlobContainerAsyncClient blobContainerAsyncClient;
     private final BlobContainerClient blobContainerClient;

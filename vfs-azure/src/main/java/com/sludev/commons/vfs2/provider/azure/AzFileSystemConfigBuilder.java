@@ -21,8 +21,6 @@ import org.apache.commons.vfs2.FileSystemConfigBuilder;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.UserAuthenticator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -30,7 +28,6 @@ import org.slf4j.LoggerFactory;
  */
 public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder {
 
-    private static final Logger log = LoggerFactory.getLogger(AzFileSystemConfigBuilder.class);
     private static final AzFileSystemConfigBuilder BUILDER = new AzFileSystemConfigBuilder();
 
     @Override
