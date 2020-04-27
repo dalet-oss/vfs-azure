@@ -260,6 +260,29 @@ public class AzFileProviderTest
 
 
     @Test
+    public void testDeleteFileInFolder() throws Exception {
+
+        String fileName = "test/test01.tmp";
+        String destUri = azUri + fileName;
+
+        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        destFileObject.copyFrom(srcFileObject, Selectors.SELECT_SELF);
+
+        assertTrue(destFileObject.exists());
+
+        destFileObject.delete();
+
+        assertFalse(destFileObject.exists());
+
+        // Check if folder is delete
+        FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test", fileSystemOptions);
+        assertFalse(dirFileObject.exists());
+    }
+
+
+    @Test
     public void testGetType() throws Exception {
 
         String fileName = "test/test01.tmp";
