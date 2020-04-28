@@ -59,12 +59,11 @@ import static org.junit.Assert.fail;
 
 
 /**
- *
  * @author kervin, lspiteri
  */
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class AzFileProviderTest
-{
+public class AzFileProviderTest {
+
     private static final Logger log = LoggerFactory.getLogger(AzFileProviderTest.class);
 
     private Properties testProperties;
@@ -74,13 +73,19 @@ public class AzFileProviderTest
 
     private static File testFile;
 
-    public AzFileProviderTest() {}
+
+    public AzFileProviderTest() {
+
+    }
+
 
     @Rule
     public TestWatcher testWatcher = new AzTestWatcher();
 
+
     @Before
     public void setUp() {
+
         try {
 
             /**
@@ -112,18 +117,24 @@ public class AzFileProviderTest
         }
     }
 
+
     @After
     public void tearDown() throws Exception {
+
         fileSystemManager.close();
     }
 
+
     @BeforeClass
     public static void setUpClass() throws Exception {
+
         testFile = createSmallFile();
     }
 
+
     @AfterClass
     public static void tearDownClass() {
+
         testFile.delete();
     }
 
@@ -278,12 +289,8 @@ public class AzFileProviderTest
 
         assertFalse(destFileObject.exists());
 
-        // Check if folder is deleted
         FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test/", fileSystemOptions);
-        assertFalse(dirFileObject.exists());
-
-        dirFileObject = fileSystemManager.resolveFile(azUri + "/test", fileSystemOptions);
-        assertFalse(dirFileObject.exists());
+        assertTrue(dirFileObject.exists());
     }
 
 
@@ -322,6 +329,18 @@ public class AzFileProviderTest
 
 
     @Test
+    public void testFileTypeImaginary() throws Exception {
+
+        String fileName = "testDir01";
+        String destUri = azUri + fileName;
+
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        assertEquals(FileType.IMAGINARY, destFileObject.getType());
+    }
+
+
+    @Test
     public void testCreateEmptyDirectory() throws Exception {
 
         String fileName = "testDir01/";
@@ -329,7 +348,31 @@ public class AzFileProviderTest
 
         FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
 
-        assertEquals(FileType.IMAGINARY, destFileObject.getType());
+        assertEquals(FileType.FOLDER, destFileObject.getType());
+    }
+
+
+    @Test
+    public void testExistsEmptyDirectory() throws Exception {
+
+        String fileName = "testDir01/";
+        String destUri = azUri + fileName;
+
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        assertTrue(destFileObject.exists());
+    }
+
+
+    @Test
+    public void testDeleteEmptyDirectory() throws Exception {
+
+        String fileName = "testDir01/";
+        String destUri = azUri + fileName;
+
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        assertTrue(destFileObject.delete());
     }
 
 
@@ -364,8 +407,7 @@ public class AzFileProviderTest
 
         try (
                 OutputStream out = destFileObject.getContent().getOutputStream(false);
-                WritableByteChannel channel = Channels.newChannel(out);)
-        {
+                WritableByteChannel channel = Channels.newChannel(out);) {
             channel.write(byteBuffer);
             destFileObject.close();
 
@@ -478,7 +520,7 @@ public class AzFileProviderTest
             Boolean res = obj.exists();
             FileType ft = obj.getType();
 
-            log.info( String.format("\nNAME.PATH : '%s'\nEXISTS : %b\nTYPE : %s\n\n", currName.getPath(), res, ft));
+            log.info(String.format("\nNAME.PATH : '%s'\nEXISTS : %b\nTYPE : %s\n\n", currName.getPath(), res, ft));
         }
 
         deleteFolderStructure();
@@ -498,7 +540,7 @@ public class AzFileProviderTest
         FileContent content = destFileObject.getContent();
         long size = content.getSize();
 
-        assertTrue( size > 0);
+        assertTrue(size > 0);
 
         long modTime = content.getLastModifiedTime();
 
@@ -536,7 +578,6 @@ public class AzFileProviderTest
         String container = testProperties.getProperty("azure.test0001.container.name");
         String host = testProperties.getProperty("azure.host", account + ".blob.core.windows.net");
 
-
         File temp = AzTestUtils.createTempFile("uploadFile02", "tmp", "File 01");
 
         AzTestUtils.uploadFile(account, host, key, container, temp.toPath(), Paths.get("file01.tmp"));
@@ -565,12 +606,12 @@ public class AzFileProviderTest
         String host = testProperties.getProperty("azure.host", account + ".blob.core.windows.net");
 
         AzTestUtils.deleteFile(account, host, key, container,
-                               Paths.get("file01.tmp"));
+                Paths.get("file01.tmp"));
 
         AzTestUtils.deleteFile(account, host, key, container,
-                               Paths.get("uploadFile02/file02.tmp"));
+                Paths.get("uploadFile02/file02.tmp"));
 
         AzTestUtils.deleteFile(account, host, key, container,
-                               Paths.get("uploadFile02/dir01/file03.tmp"));
+                Paths.get("uploadFile02/dir01/file03.tmp"));
     }
 }
