@@ -329,12 +329,14 @@ public class AzFileProviderTest {
 
 
     @Test
-    public void testGetTypeVirtualFolder() throws Exception {
+    public void testFileTypeImaginary() throws Exception {
 
-        FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test/", fileSystemOptions);
-        FileType fileType = dirFileObject.getType();
+        String fileName = "testDir01";
+        String destUri = azUri + fileName;
 
-        assertEquals(FileType.FOLDER, fileType);
+        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
+
+        assertEquals(FileType.IMAGINARY, destFileObject.getType());
     }
 
 
