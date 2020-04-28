@@ -32,6 +32,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestWatcher;
@@ -207,6 +208,7 @@ public class AzFileProviderTest
     }
 
 
+    @Ignore
     @Test
     public void testCopyBlobToBlobLarge() throws Exception {
 
@@ -276,8 +278,11 @@ public class AzFileProviderTest
 
         assertFalse(destFileObject.exists());
 
-        // Check if folder is delete
-        FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test", fileSystemOptions);
+        // Check if folder is deleted
+        FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test/", fileSystemOptions);
+        assertFalse(dirFileObject.exists());
+
+        dirFileObject = fileSystemManager.resolveFile(azUri + "/test", fileSystemOptions);
         assertFalse(dirFileObject.exists());
     }
 
@@ -324,7 +329,7 @@ public class AzFileProviderTest
 
         FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
 
-        assertEquals(FileType.FOLDER, destFileObject.getType());
+        assertEquals(FileType.IMAGINARY, destFileObject.getType());
     }
 
 
@@ -351,7 +356,6 @@ public class AzFileProviderTest
         String fileName = "testDir01/dirL2/test.out";
         String destUri = azUri + fileName;
 
-        FileObject srcFileObject = fileSystemManager.resolveFile(String.format("file://%s", testFile.getAbsolutePath()));
         FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
 
         byte test[] = "aaaaaaaa".getBytes();
@@ -362,11 +366,16 @@ public class AzFileProviderTest
                 OutputStream out = destFileObject.getContent().getOutputStream(false);
                 WritableByteChannel channel = Channels.newChannel(out);)
         {
-
             channel.write(byteBuffer);
             destFileObject.close();
 
             assertTrue(destFileObject.exists());
+
+            FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/testDir01/dirL2", fileSystemOptions);
+            FileType fileType = dirFileObject.getType();
+
+            assertEquals(FileType.FOLDER, fileType);
+
             destFileObject.delete();
         }
         catch (FileSystemException e) {

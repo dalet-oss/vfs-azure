@@ -28,7 +28,6 @@ import com.azure.storage.blob.models.BlobStorageException;
 import com.azure.storage.blob.models.Block;
 import com.azure.storage.blob.models.BlockList;
 import com.azure.storage.blob.models.BlockListType;
-import com.azure.storage.blob.models.ListBlobsOptions;
 import com.azure.storage.blob.models.ParallelTransferOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
@@ -53,6 +52,7 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -182,37 +182,29 @@ public class AzFileObject extends AbstractFileObject {
             return FileType.FOLDER;
         }
 
-        ListBlobsOptions lbo = new ListBlobsOptions();
+        Iterable<BlobItem> blobs = blobContainerClient.listBlobsByHierarchy(name);
+        BlobItem blobItem = null;
 
-        lbo.setMaxResultsPerPage(2);
-        lbo.setPrefix(name);
+        Iterator<BlobItem> iterator = blobs.iterator();
 
-        Iterable<BlobItem> blobs = blobContainerClient.listBlobsByHierarchy(name, lbo, null);
+        while (iterator.hasNext()) {
 
-        List<BlobItem> blobList = new ArrayList<>();
+            BlobItem item = iterator.next();
 
-        blobs.forEach(blobList::add);
-
-        if (blobList.size() > 1) {
-            res = FileType.FOLDER;
-        }
-        else if (blobList.size() == 1) {
-
-            BlobItem item = blobList.get(0);
-
-            if (item.isPrefix() != null && item.isPrefix()) {
-                res = FileType.FOLDER;
-            }
-            else {
-                res = FileType.FILE;
+            if (item.getName().equals(name) || item.getName().equals(name + "/")) {
+                blobItem = item;
+                break;
             }
         }
-        else if (fileName.getType() == FileType.FOLDER) {
-            // This is an empty folder.
+
+        if (blobItem == null) {
+            res = FileType.IMAGINARY;
+        }
+        else if (blobItem.isPrefix() != null && blobItem.isPrefix()) {
             res = FileType.FOLDER;
         }
         else {
-            res = FileType.IMAGINARY;
+            res = FileType.FILE;
         }
 
         this.fileType = res;
@@ -276,8 +268,6 @@ public class AzFileObject extends AbstractFileObject {
     protected long doGetContentSize() throws Exception {
 
         long res = -1;
-
-        getBlobProperties();
         res = getBlobProperties().getBlobSize();
 
         return res;
