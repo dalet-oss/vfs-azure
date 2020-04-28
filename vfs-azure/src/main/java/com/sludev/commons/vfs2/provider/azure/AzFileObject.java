@@ -171,6 +171,10 @@ public class AzFileObject extends AbstractFileObject {
 
         AzFileName fileName = (AzFileName) getName();
 
+        if (fileName != null && fileName.getType() == FileType.FOLDER) {
+            return FileType.FOLDER;
+        }
+
         String name = fileName.getPath();
 
         if (name.startsWith("/")) {
