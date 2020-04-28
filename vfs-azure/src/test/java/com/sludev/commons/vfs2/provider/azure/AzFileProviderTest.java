@@ -279,7 +279,10 @@ public class AzFileProviderTest
         assertFalse(destFileObject.exists());
 
         // Check if folder is deleted
-        FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test", fileSystemOptions);
+        FileObject dirFileObject = fileSystemManager.resolveFile(azUri + "/test/", fileSystemOptions);
+        assertFalse(dirFileObject.exists());
+
+        dirFileObject = fileSystemManager.resolveFile(azUri + "/test", fileSystemOptions);
         assertFalse(dirFileObject.exists());
     }
 
