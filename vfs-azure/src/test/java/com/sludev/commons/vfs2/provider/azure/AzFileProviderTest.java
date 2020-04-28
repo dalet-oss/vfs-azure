@@ -339,18 +339,6 @@ public class AzFileProviderTest {
 
 
     @Test
-    public void testFileTypeImaginary() throws Exception {
-
-        String fileName = "testDir01";
-        String destUri = azUri + fileName;
-
-        FileObject destFileObject = fileSystemManager.resolveFile(destUri, fileSystemOptions);
-
-        assertEquals(FileType.IMAGINARY, destFileObject.getType());
-    }
-
-
-    @Test
     public void testCreateEmptyDirectory() throws Exception {
 
         String fileName = "testDir01/";
