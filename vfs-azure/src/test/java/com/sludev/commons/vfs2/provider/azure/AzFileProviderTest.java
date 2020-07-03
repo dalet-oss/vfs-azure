@@ -74,9 +74,7 @@ public class AzFileProviderTest {
     private static File testFile;
 
 
-    public AzFileProviderTest() {
-
-    }
+    public AzFileProviderTest() { }
 
 
     @Rule
@@ -87,11 +85,7 @@ public class AzFileProviderTest {
     public void setUp() {
 
         try {
-
-            /**
-             * Get the current test properties from a file so we don't hard-code
-             * in our source code.
-             */
+            // Get the current test properties from a file so we don't hard-code in our source code.
             testProperties = AzTestProperties.GetProperties();
 
             String account = testProperties.getProperty("azure.account.name");
