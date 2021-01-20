@@ -510,7 +510,7 @@ public class AzFileObject extends AbstractFileObject {
                         }
                         else {
                             URL url = ((AzFileObject) srcFile).getSignedUrl(TWENTY_FOUR_HOURS_IN_SEC);
-                            blobClient.copyFromUrl(url.toString());
+                            ((AzFileObject) destFile).blobClient.copyFromUrl(url.toString());
                         }
 
                         doGetType(); // Change file to non-imgainary type.
