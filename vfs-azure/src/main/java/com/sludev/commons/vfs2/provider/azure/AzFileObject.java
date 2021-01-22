@@ -167,12 +167,11 @@ public class AzFileObject extends AbstractFileObject {
 
         doAttach();
 
-        FileType res;
-
         AzFileName fileName = (AzFileName) getName();
 
         if (fileName != null && fileName.getType() == FileType.FOLDER) {
-            return FileType.FOLDER;
+            fileType = FileType.FOLDER;
+            return fileType;
         }
 
         String name = fileName.getPath();
@@ -183,7 +182,8 @@ public class AzFileObject extends AbstractFileObject {
 
         // If we are given the container root then consider this a folder.
         if ("".equals(name)) {
-            return FileType.FOLDER;
+            fileType = FileType.FOLDER;
+            return fileType;
         }
 
         Iterable<BlobItem> blobs = blobContainerClient.listBlobsByHierarchy(name);
@@ -201,6 +201,7 @@ public class AzFileObject extends AbstractFileObject {
             }
         }
 
+        FileType res;
         if (blobItem == null) {
             res = FileType.IMAGINARY;
         }
@@ -421,7 +422,7 @@ public class AzFileObject extends AbstractFileObject {
     @Override public boolean exists() throws FileSystemException {
 
         try {
-            FileType type = doGetType();
+            FileType type = getType();
             return FileType.IMAGINARY != type;
         }
         catch (Exception e) {
