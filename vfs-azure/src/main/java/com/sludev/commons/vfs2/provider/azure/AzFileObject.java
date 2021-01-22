@@ -76,7 +76,8 @@ public class AzFileObject extends AbstractFileObject {
 
     public static final int AZURE_MAX_BLOCKS = 50000;
     public static final int AZURE_MAX_BLOCK_SIZE_MB = 100;
-    public static final long AZURE_MAX_BLOB_SIZE_BYTES = AZURE_MAX_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER * AZURE_MAX_BLOCKS;
+    public static final long AZURE_MAX_BLOB_SIZE_BYTES =
+            AZURE_MAX_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER * AZURE_MAX_BLOCKS;
 
     private FileType fileType = null;
 
@@ -149,6 +150,7 @@ public class AzFileObject extends AbstractFileObject {
         blobAsyncClient = null;
         blobProperties = null;
         isAttached = false;
+        fileType = null;
     }
 
 
@@ -167,12 +169,21 @@ public class AzFileObject extends AbstractFileObject {
 
         doAttach();
 
-        FileType res;
-
         AzFileName fileName = (AzFileName) getName();
 
+        //file type IMAGINARY check is required because in case of place holder type object file type would be IMAGINARY so
+        // that needs to be corrected once it gets imported.
+        // second reason behind this check is, this.isAttached and super.attached properties are not in sync when this
+        // .doAttached() called directly so while closing object (fleObject.close()) internally it calls detach() method to
+        // detach the object but it finds supper.attached to false and return from there without detaching the object.
+        if (this.fileType != null && this.fileType != FileType.IMAGINARY) {
+            return this.fileType;
+        }
+
         if (fileName != null && fileName.getType() == FileType.FOLDER) {
-            return FileType.FOLDER;
+            this.fileType = FileType.FOLDER;
+            injectType(this.fileType);
+            return this.fileType;
         }
 
         String name = fileName.getPath();
@@ -183,7 +194,9 @@ public class AzFileObject extends AbstractFileObject {
 
         // If we are given the container root then consider this a folder.
         if ("".equals(name)) {
-            return FileType.FOLDER;
+            this.fileType = FileType.FOLDER;
+            injectType(this.fileType);
+            return this.fileType;
         }
 
         Iterable<BlobItem> blobs = blobContainerClient.listBlobsByHierarchy(name);
@@ -201,6 +214,7 @@ public class AzFileObject extends AbstractFileObject {
             }
         }
 
+        FileType res;
         if (blobItem == null) {
             res = FileType.IMAGINARY;
         }
@@ -212,10 +226,10 @@ public class AzFileObject extends AbstractFileObject {
         }
 
         this.fileType = res;
+        super.injectType(this.fileType);
 
-        return fileType;
+        return this.fileType;
     }
-
 
     //    @Override
     //    protected FileObject[] doListChildrenResolved() throws Exception
@@ -286,6 +300,7 @@ public class AzFileObject extends AbstractFileObject {
      */
     @Override
     protected InputStream doGetInputStream() throws Exception {
+
         return blobClient.getBlockBlobClient().openInputStream();
     }
 
@@ -299,6 +314,7 @@ public class AzFileObject extends AbstractFileObject {
      */
     @Override
     protected OutputStream doGetOutputStream(boolean overwrite) throws Exception {
+
         return blobClient.getBlockBlobClient().getBlobOutputStream(true);
     }
 
@@ -378,6 +394,9 @@ public class AzFileObject extends AbstractFileObject {
         if (FileType.FILE == doGetType()) {
             blobClient.delete();
         }
+
+        //once object gets deleted fileType must be set as FileType.IMAGINARY because it's no longer exist.
+        this.fileType = FileType.IMAGINARY;
     }
 
 
@@ -513,7 +532,7 @@ public class AzFileObject extends AbstractFileObject {
                             ((AzFileObject) destFile).blobClient.copyFromUrl(url.toString());
                         }
 
-                        doGetType(); // Change file to non-imgainary type.
+                        ((AzFileObject) destFile).doGetType(); // Change file to non-imgainary type.
                     }
                     else if (srcFile.getType().hasContent()) {
 
@@ -578,7 +597,7 @@ public class AzFileObject extends AbstractFileObject {
                 bos.close();
             }
 
-            doGetType();
+            ((AzFileObject) destFile).doGetType();
         }
         finally {
             destFile.close();
@@ -589,6 +608,7 @@ public class AzFileObject extends AbstractFileObject {
 
     /**
      * Performas a blob to blob copy for files larger and 256MB.
+     *
      * @param srcFile
      * @throws Exception
      */
@@ -634,7 +654,7 @@ public class AzFileObject extends AbstractFileObject {
     protected int getBlockSize(long fileSize) throws FileSystemException {
 
         if (fileSize > AZURE_MAX_BLOB_SIZE_BYTES) {
-             throw new FileSystemException("File size exceeds Azure Blob size limit");
+            throw new FileSystemException("File size exceeds Azure Blob size limit");
         }
 
         long dynamicBlockSizeThreshold = (DEFAULT_UPLOAD_BLOCK_SIZE_MB * AZURE_MAX_BLOCKS) * MEGABYTES_TO_BYTES_MULTIPLIER;
@@ -734,4 +754,5 @@ public class AzFileObject extends AbstractFileObject {
 
         return blobProperties;
     }
+
 }
