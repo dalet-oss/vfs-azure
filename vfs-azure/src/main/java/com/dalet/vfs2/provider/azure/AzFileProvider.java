@@ -101,20 +101,19 @@ public class AzFileProvider extends AbstractOriginatingFileProvider {
             UserAuthenticationData.USERNAME, UserAuthenticationData.PASSWORD
         };
 
-    static final Collection<Capability> capabilities = Collections.unmodifiableCollection(Arrays.asList(new Capability[] {
-        Capability.GET_TYPE,
-        Capability.READ_CONTENT,
-        Capability.APPEND_CONTENT,
-        Capability.URI,
-        Capability.ATTRIBUTES,
-        Capability.RANDOM_ACCESS_READ,
-        Capability.DIRECTORY_READ_CONTENT,
-        Capability.LIST_CHILDREN,
-        Capability.LAST_MODIFIED,
-        Capability.GET_LAST_MODIFIED,
-        Capability.CREATE,
-        Capability.DELETE
-    }));
+    static final Collection<Capability> capabilities = Collections.unmodifiableCollection(Arrays.asList(
+            Capability.GET_TYPE,
+            Capability.READ_CONTENT,
+            Capability.APPEND_CONTENT,
+            Capability.URI,
+            Capability.ATTRIBUTES,
+            Capability.RANDOM_ACCESS_READ,
+            Capability.DIRECTORY_READ_CONTENT,
+            Capability.LIST_CHILDREN,
+            Capability.LAST_MODIFIED,
+            Capability.GET_LAST_MODIFIED,
+            Capability.CREATE,
+            Capability.DELETE));
 
 
     /**

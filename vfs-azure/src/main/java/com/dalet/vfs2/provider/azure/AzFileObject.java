@@ -79,8 +79,8 @@ public class AzFileObject extends AbstractFileObject {
 
     private FileType fileType = null;
 
-    private BlobContainerClient blobContainerClient;
-    private BlobContainerAsyncClient blobContainerAsyncClient;
+    private final BlobContainerClient blobContainerClient;
+    private final BlobContainerAsyncClient blobContainerAsyncClient;
     private BlobClient blobClient;
     private BlobAsyncClient blobAsyncClient;
     private BlobProperties blobProperties;

@@ -7,8 +7,8 @@ import org.apache.commons.vfs2.provider.AbstractFileName;
 
 public class AzFileName extends AbstractFileName {
 
-    private String account;
-    private String container;
+    private final String account;
+    private final String container;
 
 
     public AzFileName(String scheme, String account, String container, String path, FileType type) {
