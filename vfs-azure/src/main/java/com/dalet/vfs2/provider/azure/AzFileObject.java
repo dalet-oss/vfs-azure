@@ -60,7 +60,7 @@ import java.util.List;
  * The main FileObject class in this provider.  It holds most of the API callbacks
  * for the provider.
  */
-public class AzFileObject extends AbstractFileObject {
+public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
     private static final Logger log = LoggerFactory.getLogger(AzFileObject.class);
 
@@ -494,12 +494,12 @@ public class AzFileObject extends AbstractFileObject {
 
             doAttach();
 
-            ArrayList files = new ArrayList();
+            List<FileObject> files = new ArrayList<>();
             src.findFiles(selector, false, files);
 
-            for (int i = 0; i < files.size(); ++i) {
+            for (FileObject file : files) {
 
-                FileObject srcFile = (FileObject) files.get(i);
+                FileObject srcFile = (FileObject) file;
                 FileType srcFileType = srcFile.getType();
 
                 if (FileType.FOLDER == srcFileType) {
@@ -538,12 +538,12 @@ public class AzFileObject extends AbstractFileObject {
                     }
                     else {
                         // nothing useful to do if no content and can't have children
-                        throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile },
-                                new UnsupportedOperationException());
+                        throw new FileSystemException("vfs.provider/copy-file.error",
+                                new UnsupportedOperationException(), srcFile, destFile);
                     }
                 }
                 catch (IOException | BlobStorageException e) {
-                    throw new FileSystemException("vfs.provider/copy-file.error", new Object[] { srcFile, destFile }, e);
+                    throw new FileSystemException("vfs.provider/copy-file.error", e, srcFile, destFile);
                 }
             }
         }
@@ -571,10 +571,11 @@ public class AzFileObject extends AbstractFileObject {
 
             BlobClient destBlobClient = blobContainerClient.getBlobClient(destFilename);
 
-            int blockSize = getBlockSize(srcFile.getContent().getSize());
+            long blockSize = getBlockSize(srcFile.getContent().getSize());
 
-            ParallelTransferOptions opts =
-                    new ParallelTransferOptions(blockSize, 5, null);
+            ParallelTransferOptions opts = new ParallelTransferOptions()
+                    .setBlockSizeLong(blockSize)
+                    .setMaxConcurrency(5);
 
             BlobRequestConditions requestConditions = new BlobRequestConditions();
 
@@ -625,10 +626,9 @@ public class AzFileObject extends AbstractFileObject {
         List<String> blockIds = new ArrayList<>();
 
         // For each block copy the block using a signed URL.
-        for (int j = 0; j < blocks.size(); j++) {
+        for (Block block : blocks) {
 
-            Block block = blocks.get(j);
-            long blockSize = block.getSize();
+            long blockSize = block.getSizeLong();
             BlobRange range = new BlobRange(rangeMax, blockSize);
             rangeMax += blockSize;
 
@@ -649,7 +649,7 @@ public class AzFileObject extends AbstractFileObject {
      * @return
      * @throws FileSystemException
      */
-    protected int getBlockSize(long fileSize) throws FileSystemException {
+    protected long getBlockSize(long fileSize) throws FileSystemException {
 
         if (fileSize > AZURE_MAX_BLOB_SIZE_BYTES) {
             throw new FileSystemException("File size exceeds Azure Blob size limit");
@@ -658,10 +658,10 @@ public class AzFileObject extends AbstractFileObject {
         long dynamicBlockSizeThreshold = (DEFAULT_UPLOAD_BLOCK_SIZE_MB * AZURE_MAX_BLOCKS) * MEGABYTES_TO_BYTES_MULTIPLIER;
 
         if (fileSize < dynamicBlockSizeThreshold) {
-            return (int) (DEFAULT_UPLOAD_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER);
+            return DEFAULT_UPLOAD_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER;
         }
         else {
-            return (int) Math.ceil((float) fileSize / (float) AZURE_MAX_BLOCKS);
+            return (long) Math.ceil((float) fileSize / (float) AZURE_MAX_BLOCKS);
         }
     }
 
