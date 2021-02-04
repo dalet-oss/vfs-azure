@@ -18,7 +18,7 @@ maintain this not as a fork of the original project but as a project in its own 
 This project is built using Travis CI.
 [![Build Status](https://travis-ci.com/dalet-oss/vfs-azure.svg?branch=master)](https://travis-ci.com/dalet-oss/vfs-azure)
 
-Published artifacts are available on JCenter as `com.dalet:vfs-azure`.
+Published artifacts are available on Maven Central as `com.github.dalet-oss:vfs-azure`.
 
 For the latest version, see https://github.com/dalet-oss/vfs-azure/releases.
 
@@ -33,13 +33,15 @@ For the latest version, see https://github.com/dalet-oss/vfs-azure/releases.
 ## Documentation
 
 From the website...
-"Commons VFS provides a single API for accessing various different file systems. It presents a uniform view of the files from various different sources, such as the files on local disk, on an HTTP server, or inside a Zip archive."
+"Commons VFS provides a single API for accessing various different file systems. It presents a uniform view of the files
+from various different sources, such as the files on local disk, on an HTTP server, or inside a Zip archive."
 
-Now Apache Commons VFS can add Azure Blob Storage to the list
+Now Apache Commons VFS can add Azure Blob Storage to the list.
 
-The project also includes a small shell ( taken from the original Apache Commons VFS tests ) but improved with JLine2 ( for command completion and history ).  This should allow interactive testing.
+The project also includes a small shell (taken from the original Apache Commons VFS tests) but improved with JLine2
+(for command completion and history).  This should allow interactive testing.
 
-Here is an example using the API
+Here is an example using the API:
 ```java
 // Grab some credentials. The "testProperties" class is just a regular properties class
 // Retrieve the properties however you please
