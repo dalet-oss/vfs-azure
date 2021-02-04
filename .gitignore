@@ -1,6 +1,7 @@
 /vfs-azure/target/
 /vfs-simpleshell/target/
 /vfs-azure/src/test/resources/test001.properties
-.idea
 .flattened-pom.xml
+.idea
 *.iml
+*.gpg
