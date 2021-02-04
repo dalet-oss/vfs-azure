@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileSystemException;
@@ -86,4 +86,5 @@ public class AzFileNameParser extends UrlFileNameParser {
 
         return new AzFileName(scheme, account, container, absPath, fileType);
     }
+
 }

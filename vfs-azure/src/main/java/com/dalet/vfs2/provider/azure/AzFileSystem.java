@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClient;
@@ -27,10 +27,9 @@ import org.apache.commons.vfs2.provider.AbstractFileSystem;
 
 import java.util.Collection;
 
+
 /**
  * File-System object represents a connect to Microsoft Azure Blob via a single client.
- *
- * @author Kervin Pierre
  */
 public class AzFileSystem extends AbstractFileSystem implements FileSystem {
 

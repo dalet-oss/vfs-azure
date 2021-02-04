@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,10 +24,7 @@ import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
 
-/**
- *
- * @author kervin
- */
+
 public class AzTestProperties
 {
     private static final Logger log = LoggerFactory.getLogger(AzTestProperties.class);

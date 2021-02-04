@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClient;
@@ -91,8 +91,6 @@ import java.util.Locale;
  * // Delete the temp we don't need anymore
  * temp.delete();
  * </code></pre>
- *
- * @author Kervin Pierre
  */
 public class AzFileProvider extends AbstractOriginatingFileProvider {
 
@@ -205,4 +203,5 @@ public class AzFileProvider extends AbstractOriginatingFileProvider {
     {
         return capabilities;
     }
+
 }

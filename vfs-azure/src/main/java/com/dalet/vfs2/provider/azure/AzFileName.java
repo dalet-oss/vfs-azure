@@ -1,4 +1,4 @@
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileType;
@@ -63,4 +63,5 @@ public class AzFileName extends AbstractFileName {
         buffer.append(".blob.core.windows.net/");
         buffer.append(container);
     }
+
 }

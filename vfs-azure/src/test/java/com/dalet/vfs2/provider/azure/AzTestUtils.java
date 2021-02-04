@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
@@ -31,10 +31,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 
-/**
- *
- * @author kervin
- */
+
 public class AzTestUtils {
 
     public static void uploadFile(String accntName, String accntHost, String accntKey, String containerName,
@@ -96,4 +93,5 @@ public class AzTestUtils {
 
         return res;
     }
+
 }

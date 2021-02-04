@@ -14,13 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
+
 
 /**
  * Various constants used in the provider.  Currently just the default scheme is
  * declared here but that might change in the future.
- *
- * @author Kervin Pierre
  */
 public class AzConstants {
 
@@ -35,4 +34,5 @@ public class AzConstants {
      * Azure File Storage API
      */
     public static final String AZFSSCHEME = "azfs";
+
 }

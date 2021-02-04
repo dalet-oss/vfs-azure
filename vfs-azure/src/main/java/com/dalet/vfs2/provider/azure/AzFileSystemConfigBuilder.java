@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import org.apache.commons.vfs2.FileSystem;
 import org.apache.commons.vfs2.FileSystemConfigBuilder;
@@ -22,10 +22,7 @@ import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.UserAuthenticator;
 
-/**
- *
- * @author kervin
- */
+
 public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder {
 
     private static final AzFileSystemConfigBuilder BUILDER = new AzFileSystemConfigBuilder();
@@ -71,4 +68,5 @@ public class AzFileSystemConfigBuilder  extends FileSystemConfigBuilder {
     public UserAuthenticator getUserAuthenticator(FileSystemOptions opts) {
         return (UserAuthenticator) getParam(opts, "userAuthenticator");
     }
+
 }

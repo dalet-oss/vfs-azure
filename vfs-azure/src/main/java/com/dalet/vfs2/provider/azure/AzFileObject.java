@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs2.provider.azure;
+package com.dalet.vfs2.provider.azure;
 
 import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.BlobClient;
@@ -59,8 +59,6 @@ import java.util.List;
 /**
  * The main FileObject class in this provider.  It holds most of the API callbacks
  * for the provider.
- *
- * @author Kervin Pierre
  */
 public class AzFileObject extends AbstractFileObject {
 
