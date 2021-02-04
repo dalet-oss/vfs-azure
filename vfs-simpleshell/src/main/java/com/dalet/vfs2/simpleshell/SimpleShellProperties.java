@@ -14,35 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs.simpleshell;
+package com.dalet.vfs2.simpleshell;
 
 import java.io.IOException;
 import java.util.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- *
- * @author kervin
- */
-public class SimpleShellProperties
-{
+
+public class SimpleShellProperties {
+
     private static final Logger log = LoggerFactory.getLogger(SimpleShellProperties.class);
             
-    public static Properties GetProperties()
-    {
+
+    public static Properties GetProperties() {
+
         Properties testProperties = new Properties();
-        try
-        {
-            testProperties.load(SimpleShellProperties.class
-                            .getClassLoader()
-                            .getResourceAsStream("test001.properties"));
+
+        try {
+            testProperties.load(SimpleShellProperties.class.getClassLoader().getResourceAsStream("test001.properties"));
         }
-        catch (IOException ex)
-        {
+        catch (IOException ex) {
             log.error("Error loading properties file", ex);
         }
         
         return testProperties;
     }
+
 }

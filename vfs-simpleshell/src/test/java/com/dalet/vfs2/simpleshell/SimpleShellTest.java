@@ -14,77 +14,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs.simpleshell;
+package com.dalet.vfs2.simpleshell;
 
-import com.sludev.commons.vfs2.provider.azure.AzConstants;
-import java.util.Properties;
-import org.junit.After;
-import org.junit.AfterClass;
+import com.dalet.vfs2.provider.azure.AzConstants;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
 import org.junit.Rule;
+import org.junit.Test;
 import org.junit.rules.TestWatcher;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-/**
- *
- * @author kervin
- */
-public class SimpleShellTest
-{
-    private static final Logger log 
-            = LoggerFactory.getLogger(SimpleShellTest.class);
-    
+import java.util.Properties;
+
+
+public class SimpleShellTest {
+
     private Properties testProperties;
-    
-    public SimpleShellTest()
-    {
-    }
-    
+
     @Rule
     public TestWatcher testWatcher = new SimpleShellTestWatcher();
     
     @Before
-    public void setUp() 
-    {
-        
-        /**
+    public void setUp() {
+        /*
          * Get the current test properties from a file so we don't hard-code
          * in our source code.
          */
         testProperties = SimpleShellProperties.GetProperties();
-    }
-    
-    @BeforeClass
-    public static void setUpClass()
-    {
-    }
-    
-    @AfterClass
-    public static void tearDownClass()
-    {
-    }
-    
-    @After
-    public void tearDown()
-    {
     }
 
     /**
      * Test of rm method, of class SimpleShell.
      */
     @Test
-    public void testRm001() throws Exception
-    {
+    public void testRm001() throws Exception {
+
         String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
         String currFileNameStr = "file05";
         
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
         
         String[] cmd = new String[2];
         SimpleShell instance = new SimpleShell(currAccountStr, currKey, currContainerStr);
@@ -99,19 +68,19 @@ public class SimpleShellTest
      * Test of cp method, of class SimpleShell.
      */
     @Test
-    public void testCp001() throws Exception
-    {
+    public void testCp001() throws Exception {
+
         String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
         
         String currFileNameStr = "file05";
         String currSrcUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
         
         currFileNameStr = "testFld/file06";
         String currDestUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
         
         String[] cmd = new String[3];
         SimpleShell instance = new SimpleShell(currAccountStr, currKey, currContainerStr);
@@ -131,15 +100,15 @@ public class SimpleShellTest
      * Test of cat method, of class SimpleShell.
      */
     @Test
-    public void testCat001() throws Exception
-    {
+    public void testCat001() throws Exception {
+
         String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
         String currFileNameStr = "file05";
         
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
         
         String[] cmd = new String[2];
         SimpleShell instance = new SimpleShell(currAccountStr, currKey, currContainerStr);
@@ -149,7 +118,7 @@ public class SimpleShellTest
         
         instance.cat(cmd);
         
-        /**
+        /*
          * FIXME : We should test instance for failure
          */
     }
@@ -159,15 +128,15 @@ public class SimpleShellTest
      * 
      */
     @Test
-    public void testLs001() throws Exception
-    {
+    public void testLs001() throws Exception {
+
         String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
         String currFileNameStr = "";
         
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
         
         String[] cmd = new String[2];
         SimpleShell instance = new SimpleShell(currAccountStr, currKey, currContainerStr);
@@ -177,7 +146,7 @@ public class SimpleShellTest
         
         instance.ls(cmd);
         
-        /**
+        /*
          * FIXME : We should test instance for failure
          */
     }
@@ -186,15 +155,14 @@ public class SimpleShellTest
      * Test of touch method, of class SimpleShell.
      */
     @Test
-    public void testTouch() throws Exception
-    {
+    public void testTouch() throws Exception {
         String currAccountStr = testProperties.getProperty("azure.account.name"); // .blob.core.windows.net
         String currKey = testProperties.getProperty("azure.account.key");
         String currContainerStr = testProperties.getProperty("azure.test0001.container.name");
         String currFileNameStr = "file05";
         
         String currUriStr = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, currAccountStr, currContainerStr, currFileNameStr);
+                           AzConstants.AZBSSCHEME, currAccountStr, currContainerStr, currFileNameStr);
         
         String[] cmd = new String[2];
         SimpleShell instance = new SimpleShell(currAccountStr, currKey, currContainerStr);

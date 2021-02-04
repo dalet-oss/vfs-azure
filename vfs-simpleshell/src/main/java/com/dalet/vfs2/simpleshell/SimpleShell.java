@@ -14,11 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs.simpleshell;
+package com.dalet.vfs2.simpleshell;
 
-import com.sludev.commons.vfs2.provider.azure.AzConstants;
-import com.sludev.commons.vfs2.provider.azure.AzFileProvider;
-import com.sludev.commons.vfs2.provider.azure.AzFileSystemConfigBuilder;
+import com.dalet.vfs2.provider.azure.AzConstants;
+import com.dalet.vfs2.provider.azure.AzFileProvider;
+import com.dalet.vfs2.provider.azure.AzFileSystemConfigBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -52,15 +52,12 @@ import org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * A simple command-line shell for performing file operations.
- *
- * @author Kervin Pierre
- * @author <a href="mailto:adammurdoch@apache.org">Adam Murdoch</a>
- * @author Gary D. Gregory
  */
-public class SimpleShell
-{
+public class SimpleShell {
+
     private static final Logger log = LoggerFactory.getLogger(SimpleShell.class);
     
     private FileSystemManager mgr;
@@ -113,18 +110,18 @@ public class SimpleShell
         AzFileSystemConfigBuilder.getInstance().setUserAuthenticator(azfp.getDefaultFileSystemOptions(), auth); 
         
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
-        currMan.addProvider(AzConstants.AZSBSCHEME, azfp);
+        currMan.addProvider(AzConstants.AZBSSCHEME, azfp);
         currMan.addProvider("file", new DefaultLocalFileProvider());
         currMan.init(); 
         
         mgr = currMan;
         //cwd = mgr.resolveFile(System.getProperty("user.dir"));c
         String currAzURL = String.format("%s://%s/%s/%s", 
-                           AzConstants.AZSBSCHEME, accnt, cont, currFileNameStr);
+                           AzConstants.AZBSSCHEME, accnt, cont, currFileNameStr);
         cwd = mgr.resolveFile(currAzURL);
         
         completors.add(new FileNameCompleter());
-        completors.add(new StringsCompleter(AzConstants.AZSBSCHEME, "file://", currAzURL));
+        completors.add(new StringsCompleter(AzConstants.AZBSSCHEME, "file://", currAzURL));
         AggregateCompleter aggComp = new AggregateCompleter(completors);
         ArgumentCompleter argComp = new ArgumentCompleter(aggComp);
         argComp.setStrict(false);

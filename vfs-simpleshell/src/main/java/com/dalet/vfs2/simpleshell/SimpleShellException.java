@@ -14,14 +14,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs.simpleshell;
+package com.dalet.vfs2.simpleshell;
 
-/**
- *
- * @author Kervin Pierre <info@sludev.com>
- */
-public class SimpleShellException extends Exception
-{
+
+public class SimpleShellException extends Exception {
+
     public SimpleShellException(String msg)
     {
         super(msg);
@@ -31,4 +28,5 @@ public class SimpleShellException extends Exception
     {
         super(msg, cause);
     }
+
 }

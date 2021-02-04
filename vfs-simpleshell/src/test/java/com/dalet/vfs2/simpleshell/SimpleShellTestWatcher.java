@@ -14,25 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sludev.commons.vfs.simpleshell;
+package com.dalet.vfs2.simpleshell;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
-/**
- *
- * @author kervin
- */
-public class SimpleShellTestWatcher extends TestWatcher
-{
-    private static final Logger log 
-                                = LoggerFactory.getLogger(SimpleShellTestWatcher.class);
-    
+
+public class SimpleShellTestWatcher extends TestWatcher {
+
+    private static final Logger log = LoggerFactory.getLogger(SimpleShellTestWatcher.class);
+
+
     @Override
-    protected void failed(Throwable e, Description description) 
-    {
+    protected void failed(Throwable e, Description description) {
         log.info( 
                 String.format("%s failed %s", 
                               description.getDisplayName(), e.getMessage()));
@@ -40,13 +36,14 @@ public class SimpleShellTestWatcher extends TestWatcher
         super.failed(e, description);
     }
 
+
     @Override
-    protected void succeeded(Description description) 
-    {
+    protected void succeeded(Description description) {
         log.info( 
                 String.format("%s succeeded.", 
                               description.getDisplayName()));
 
         super.succeeded(description);
     }
+
 }
