@@ -16,23 +16,22 @@
  */
 package com.sludev.commons.vfs2.provider.azure;
 
+import com.azure.core.util.polling.LongRunningOperationStatus;
+import com.azure.core.util.polling.PollResponse;
+import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobAsyncClient;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.models.BlobCopyInfo;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobProperties;
-import com.azure.storage.blob.models.BlobRange;
 import com.azure.storage.blob.models.BlobRequestConditions;
 import com.azure.storage.blob.models.BlobStorageException;
-import com.azure.storage.blob.models.Block;
-import com.azure.storage.blob.models.BlockList;
-import com.azure.storage.blob.models.BlockListType;
 import com.azure.storage.blob.models.ParallelTransferOptions;
 import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlobOutputStream;
-import com.azure.storage.blob.specialized.BlockBlobClient;
 import com.azure.storage.common.sas.SasProtocol;
 import org.apache.commons.vfs2.FileNotFolderException;
 import org.apache.commons.vfs2.FileObject;
@@ -50,6 +49,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URL;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -515,24 +515,30 @@ public class AzFileObject extends AbstractFileObject {
                     destFile.delete(Selectors.SELECT_ALL);
                 }
 
-                // We need the CloudBlockBlob for the file that we want to upload, as we were always using the
-                // CloudBlockBlob of the root directory when we were trying to copy directories, hence it was always overwriting
-                // the root directory on azure storage.
                 try {
                     if (srcFile.getType().hasChildren()) {
                         destFile.createFolder();
                     }
                     else if (canCopyServerSide(srcFile, destFile)) {
 
+                        AzFileObject destAzFile = (AzFileObject) destFile;
+
+                        String url = ((AzFileObject) srcFile).getSignedUrl(TWENTY_FOUR_HOURS_IN_SEC).toString();
+
                         if (srcFile.getContent().getSize() > BLOB_COPY_THRESHOLD_MB) {
-                            doCopyFromUrl((AzFileObject) srcFile);
+                            SyncPoller<BlobCopyInfo, Void> poll = destAzFile.blobClient.beginCopy(url, Duration.ofSeconds(1));
+                            PollResponse<BlobCopyInfo> pollResponse = poll.waitForCompletion();
+
+                            if (pollResponse.getStatus() != LongRunningOperationStatus.SUCCESSFULLY_COMPLETED) {
+                                Exception exception = new Exception(pollResponse.getStatus().toString());
+                                throw new FileSystemException("vfs.provider/copy-file.error", exception, srcFile, destFile);
+                            }
                         }
                         else {
-                            URL url = ((AzFileObject) srcFile).getSignedUrl(TWENTY_FOUR_HOURS_IN_SEC);
-                            ((AzFileObject) destFile).blobClient.copyFromUrl(url.toString());
+                            destAzFile.blobClient.copyFromUrl(url);
                         }
 
-                        ((AzFileObject) destFile).doGetType(); // Change file to non-imgainary type.
+                        destAzFile.doGetType(); // Change file to non-imaginary type.
                     }
                     else if (srcFile.getType().hasContent()) {
 
@@ -603,42 +609,6 @@ public class AzFileObject extends AbstractFileObject {
             destFile.close();
             srcFile.close();
         }
-    }
-
-
-    /**
-     * Performas a blob to blob copy for files larger and 256MB.
-     *
-     * @param srcFile
-     * @throws Exception
-     */
-    private void doCopyFromUrl(AzFileObject srcFile) throws Exception {
-
-        BlockBlobClient srcBlobClient = srcFile.blobClient.getBlockBlobClient();
-        BlockBlobClient destBlobClient = blobClient.getBlockBlobClient();
-
-        // Get the list of committed blocks
-        BlockList blockList = srcBlobClient.listBlocks(BlockListType.COMMITTED);
-        List<Block> blocks = blockList.getCommittedBlocks();
-
-        long rangeMax = 0;
-        URL blobUrl = srcFile.getSignedUrl(TWENTY_FOUR_HOURS_IN_SEC);
-
-        List<String> blockIds = new ArrayList<>();
-
-        // For each block copy the block using a signed URL.
-        for (int j = 0; j < blocks.size(); j++) {
-
-            Block block = blocks.get(j);
-            long blockSize = block.getSize();
-            BlobRange range = new BlobRange(rangeMax, blockSize);
-            rangeMax += blockSize;
-
-            blockIds.add(block.getName());
-            destBlobClient.stageBlockFromUrl(block.getName(), blobUrl.toString(), range);
-        }
-
-        destBlobClient.commitBlockList(blockIds, true);
     }
 
 
