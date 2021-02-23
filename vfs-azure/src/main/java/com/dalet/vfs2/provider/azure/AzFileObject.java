@@ -16,6 +16,8 @@
  */
 package com.dalet.vfs2.provider.azure;
 
+import com.azure.core.util.polling.LongRunningOperationStatus;
+import com.azure.core.util.polling.PollResponse;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerAsyncClient;
@@ -88,8 +90,8 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
     /**
      * Creates a new FileObject for use with a remote Azure Blob Storage file or folder.
      *
-     * @param fileName   - azure file name object, which contains path and name of the file
-     * @param fileSystem - azure file system object for file operation
+     * @param fileName   - Azure file name object, which contains path and name of the file
+     * @param fileSystem - Azure file system object for file operation
      */
     public AzFileObject(final AbstractFileName fileName, final AzFileSystem fileSystem) {
 
@@ -347,11 +349,11 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
     /**
      * We need to override this method, because the parent one throws an exception.
      *
-     * @param modTime the last modified time to set.
+     * @param modifiedTime the last modified time to set.
      * @return true if setting the last modified time was successful.
      */
     @Override
-    protected boolean doSetLastModifiedTime(long modTime) {
+    protected boolean doSetLastModifiedTime(long modifiedTime) {
 
         return true;
     }
@@ -451,9 +453,13 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
                         String url = ((AzFileObject) srcFile).getSignedUrl(TWENTY_FOUR_HOURS_IN_SEC).toString();
 
                         if (srcFile.getContent().getSize() > BLOB_COPY_THRESHOLD_MB) {
-
                             SyncPoller<BlobCopyInfo, Void> poll = destAzFile.blobClient.beginCopy(url, Duration.ofSeconds(1));
-                            poll.waitForCompletion();
+                            PollResponse<BlobCopyInfo> pollResponse = poll.waitForCompletion();
+
+                            if (pollResponse.getStatus() != LongRunningOperationStatus.SUCCESSFULLY_COMPLETED) {
+                                Exception exception = new Exception(pollResponse.getStatus().toString());
+                                throw new FileSystemException("vfs.provider/copy-file.error", exception, srcFile, destFile);
+                            }
                         }
                         else {
                             destAzFile.blobClient.copyFromUrl(url);
@@ -620,7 +626,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
     /**
      * Returns an account name from given azure file object
      *
-     * @param azFileObject - azure file object for which account name to be returned
+     * @param azFileObject - Azure file object for which account name to be returned
      * @return - name of account for given azure file object
      */
     private String getAccountName(AzFileObject azFileObject) {
