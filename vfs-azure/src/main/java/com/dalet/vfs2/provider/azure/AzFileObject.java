@@ -76,7 +76,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
     private static final long AZURE_MAX_BLOB_SIZE_BYTES =
             AZURE_MAX_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER * AZURE_MAX_BLOCKS;
 
-    private static final String BLACK_SLASH = "/";
+    private static final String SLASH = "/";
 
     private final BlobContainerClient blobContainerClient;
     private final BlobContainerAsyncClient blobContainerAsyncClient;
@@ -112,7 +112,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
         String name = getName().getPath();
 
-        if (name.startsWith(BLACK_SLASH)) {
+        if (name.startsWith(SLASH)) {
             name = name.substring(1);
         }
 
@@ -173,7 +173,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
         String name = fileName.getPath();
 
-        if (name.startsWith(BLACK_SLASH)) {
+        if (name.startsWith(SLASH)) {
             name = name.substring(1);
         }
 
@@ -193,7 +193,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
             BlobItem item = iterator.next();
 
-            if (item.getName().equals(name) || item.getName().equals(name + BLACK_SLASH)) {
+            if (item.getName().equals(name) || item.getName().equals(name + SLASH)) {
                 blobItem = item;
                 break;
             }
@@ -269,12 +269,12 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
         String path = fileName.getPath();
 
-        if (path.startsWith(BLACK_SLASH)) {
+        if (path.startsWith(SLASH)) {
             path = path.substring(1);
         }
 
-        if (!path.endsWith(BLACK_SLASH)) {
-            path = path + BLACK_SLASH;
+        if (!path.endsWith(SLASH)) {
+            path = path + SLASH;
         }
 
         Iterable<BlobItem> blobs = blobContainerAsyncClient.listBlobsByHierarchy(path).toIterable();
@@ -288,13 +288,13 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
         for (BlobItem blobItem : blobList) {
 
             String name = blobItem.getName();
-            String[] names = name.split(BLACK_SLASH);
+            String[] names = name.split(SLASH);
 
             String itemName = names[names.length - 1];
 
             // Preserve folders
-            if (name.endsWith(BLACK_SLASH)) {
-                itemName = itemName + BLACK_SLASH;
+            if (name.endsWith(SLASH)) {
+                itemName = itemName + SLASH;
             }
 
             resList.add(itemName);
@@ -500,7 +500,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
         try {
             String destFilename = destFile.getName().getPath();
 
-            if (destFilename.startsWith(BLACK_SLASH)) {
+            if (destFilename.startsWith(SLASH)) {
                 destFilename = destFilename.substring(1);
             }
 
