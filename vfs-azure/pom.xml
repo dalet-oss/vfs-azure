@@ -176,7 +176,21 @@
     <dependency>
       <groupId>com.azure</groupId>
       <artifactId>azure-storage-blob</artifactId>
-      <version>12.10.0</version>
+      <version>12.11.0</version>
+      <exclusions>
+        <exclusion>
+          <groupId>io.projectreactor.netty</groupId>
+          <artifactId>reactor-netty</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
+    <!-- This was added externally to resolve connection reset by peer issue while coping large file. remove it once this or
+    later version is bundled with azure-storage-blob library-->
+    <dependency>
+      <groupId>io.projectreactor.netty</groupId>
+      <artifactId>reactor-netty</artifactId>
+      <version>1.0.7</version>
     </dependency>
 
     <dependency>
