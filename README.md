@@ -20,7 +20,7 @@ This project is built using Travis CI.
 
 Published artifacts are available on Maven Central as `com.github.dalet-oss:vfs-azure`.
 
-For the latest version, see https://github.com/dalet-oss/vfs-azure/releases.
+For the latest version, see https://github.com/dalet-oss/vfs-azure/tags.
 
 #### Note for maintainers:
 
