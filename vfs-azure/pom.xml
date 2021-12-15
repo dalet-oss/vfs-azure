@@ -33,6 +33,10 @@
       <name>Lincoln Spiteri</name>
       <email>lspiteri@dalet.com</email>
     </developer>
+    <developer>
+      <name>Oliver Lockwood</name>
+      <email>olockwood@dalet.com</email>
+    </developer>
   </developers>
 
   <distributionManagement>
