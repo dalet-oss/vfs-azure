@@ -44,11 +44,11 @@ import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.FileType;
-import org.apache.commons.vfs2.FileUtil;
 import org.apache.commons.vfs2.Selectors;
 import org.apache.commons.vfs2.auth.StaticUserAuthenticator;
 import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.provider.local.DefaultLocalFileProvider;
+import org.apache.commons.vfs2.util.FileObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,13 +59,13 @@ import org.slf4j.LoggerFactory;
 public class SimpleShell {
 
     private static final Logger log = LoggerFactory.getLogger(SimpleShell.class);
-    
+
     private FileSystemManager mgr;
     private FileObject cwd;
-    
+
     private Properties mainProperties;
     private ConsoleReader conReader;
-    
+
     public static void main(final String[] args)
     {
         try
@@ -83,61 +83,61 @@ public class SimpleShell {
     public SimpleShell() throws FileSystemException, IOException
     {
         mainProperties = SimpleShellProperties.GetProperties();
-                
+
         String currAccountStr = mainProperties.getProperty("azure.account.name"); // .blob.core.windows.net
         String currKey = mainProperties.getProperty("azure.account.key");
         String currContainerStr = mainProperties.getProperty("azure.test0001.container.name");
-        
+
         Init(currAccountStr, currKey, currContainerStr);
     }
-    
+
     public SimpleShell(String accnt, String key, String cont) throws FileSystemException, IOException
     {
         Init(accnt, key, cont);
     }
-    
+
     private void Init(String accnt, String key, String cont) throws IOException
     {
         conReader = new ConsoleReader();
         conReader.setPrompt("AzureShell> ");
-        
+
          List<Completer> completors = new LinkedList<>();
-         
+
         String currFileNameStr = "dir1";
 
         AzFileProvider azfp = new AzFileProvider();
         StaticUserAuthenticator auth = new StaticUserAuthenticator("", accnt, key);
-        AzFileSystemConfigBuilder.getInstance().setUserAuthenticator(azfp.getDefaultFileSystemOptions(), auth); 
-        
+        AzFileSystemConfigBuilder.getInstance().setUserAuthenticator(azfp.getDefaultFileSystemOptions(), auth);
+
         DefaultFileSystemManager currMan = new DefaultFileSystemManager();
         currMan.addProvider(AzConstants.AZBSSCHEME, azfp);
         currMan.addProvider("file", new DefaultLocalFileProvider());
-        currMan.init(); 
-        
+        currMan.init();
+
         mgr = currMan;
         //cwd = mgr.resolveFile(System.getProperty("user.dir"));c
-        String currAzURL = String.format("%s://%s/%s/%s", 
+        String currAzURL = String.format("%s://%s/%s/%s",
                            AzConstants.AZBSSCHEME, accnt, cont, currFileNameStr);
         cwd = mgr.resolveFile(currAzURL);
-        
+
         completors.add(new FileNameCompleter());
         completors.add(new StringsCompleter(AzConstants.AZBSSCHEME, "file://", currAzURL));
         AggregateCompleter aggComp = new AggregateCompleter(completors);
         ArgumentCompleter argComp = new ArgumentCompleter(aggComp);
         argComp.setStrict(false);
         conReader.addCompleter(argComp);
-        
+
         Path histPath = Paths.get(System.getProperty("user.home"), ".simpleshellhist");
         File histFile = histPath.toFile();
         FileHistory fh = new FileHistory(histFile);
         conReader.setHistory(fh);
         conReader.setHistoryEnabled(true);
-        
+
         Runtime.getRuntime().addShutdownHook(
-                new Thread() 
+                new Thread()
                 {
                     @Override
-                    public void run() 
+                    public void run()
                     {
                         try
                         {
@@ -149,7 +149,7 @@ public class SimpleShell {
                         }
                     }
                 });
-        
+
     }
 
     public void go() throws Exception
@@ -157,22 +157,22 @@ public class SimpleShell {
         String line;
         PrintWriter out = new PrintWriter(conReader.getOutput());
 
-        while ((line = conReader.readLine()) != null) 
+        while ((line = conReader.readLine()) != null)
         {
             out.println("======>\"" + line + "\"");
             out.flush();
 
-            if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit")) 
+            if (line.equalsIgnoreCase("quit") || line.equalsIgnoreCase("exit"))
             {
                 break;
             }
-            
-            if (line.equalsIgnoreCase("clear")) 
+
+            if (line.equalsIgnoreCase("clear"))
             {
                 conReader.clearScreen();
                 continue;
             }
-            
+
             try
             {
                 StringTokenizer tokens = new StringTokenizer(line);
@@ -181,45 +181,45 @@ public class SimpleShell {
                 {
                     cmdList.add(tokens.nextToken());
                 }
-                
+
                 String[] cmd = cmdList.toArray(new String[cmdList.size()]);
-                
+
                 String cmdName = cmd[0].trim().toLowerCase();
-                
+
                 switch(cmdName)
                 {
                     case "cat":
                         cat(cmd);
                         break;
-                        
+
                     case "cd":
                         cd(cmd);
                         break;
-                        
+
                     case "cp":
                         cp(cmd);
                         break;
-                        
+
                     case "help":
                         help();
                         break;
-                        
+
                     case "pwd":
                         pwd();
                         break;
-                        
+
                     case "ls":
                         ls(cmd);
                         break;
-                        
+
                     case "rm":
                         rm(cmd);
                         break;
-                        
+
                     case "touch":
                         touch(cmd);
                         break;
-                        
+
                     default:
                         log.warn("Unknown command \"" + cmdName + "\".");
                 }
@@ -268,7 +268,7 @@ public class SimpleShell {
 
     /**
      * Does a 'cp' command.
-     * 
+     *
      * @param cmd
      * @throws SimpleShellException
      */
@@ -290,7 +290,7 @@ public class SimpleShell {
             //log.error( errMsg, ex);
             throw new SimpleShellException(errMsg, ex);
         }
-        
+
         FileObject dest = null;
         try
         {
@@ -302,7 +302,7 @@ public class SimpleShell {
             //log.error( errMsg, ex);
             throw new SimpleShellException(errMsg, ex);
         }
-        
+
         try
         {
             if (dest.exists() && dest.getType() == FileType.FOLDER)
@@ -331,7 +331,7 @@ public class SimpleShell {
 
     /**
      * Does a 'cat' command.
-     * 
+     *
      * @param cmd
      * @throws SimpleShellException
      */
@@ -370,7 +370,7 @@ public class SimpleShell {
             //log.error( errMsg, ex);
             throw new SimpleShellException(errMsg, ex);
         }
-        
+
         try
         {
             if( file.getType() != FileType.FILE )
@@ -386,11 +386,11 @@ public class SimpleShell {
             //log.error( errMsg, ex);
             throw new SimpleShellException(errMsg, ex);
         }
-        
+
         try
         {
             // Dump the contents to System.out
-            FileUtil.writeContent(file, System.out);
+            FileObjectUtils.writeContent(file, System.out);
         }
         catch (IOException ex)
         {
@@ -398,7 +398,7 @@ public class SimpleShell {
             //log.error( errMsg, ex);
             throw new SimpleShellException(errMsg, ex);
         }
-        
+
         System.out.println();
     }
 
@@ -441,7 +441,7 @@ public class SimpleShell {
 
     /**
      * Does an 'ls' command.
-     * 
+     *
      * @param cmd
      * @throws org.apache.commons.vfs2.FileSystemException
      */
@@ -476,7 +476,7 @@ public class SimpleShell {
                 System.out.println("Contents of " + file.getName());
                 listChildren(file, recursive, "");
                 break;
-        
+
             case FILE:
                 // Stat the file
                 System.out.println(file.getName());
@@ -486,11 +486,11 @@ public class SimpleShell {
                 final String lastMod = dateFormat.format(new Date(content.getLastModifiedTime()));
                 System.out.println("Last modified: " + lastMod);
                 break;
-                
+
             case IMAGINARY:
                 System.out.println(String.format("File '%s' is IMAGINARY", file.getName()));
                 break;
-                
+
             default:
                 log.error(String.format("Unkown type '%d' on '%s'", file.getType(), file.getName()));
                 break;
@@ -499,7 +499,7 @@ public class SimpleShell {
 
     /**
      * Does a 'touch' command.
-     * 
+     *
      * @param cmd
      * @throws java.lang.Exception
      */

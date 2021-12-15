@@ -75,7 +75,7 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>flatten-maven-plugin</artifactId>
-            <version>1.2.2</version>
+            <version>1.2.7</version>
             <configuration>
               <updatePomFile>true</updatePomFile>
               <flattenMode>resolveCiFriendliesOnly</flattenMode>
@@ -113,7 +113,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.2.0</version>
+            <version>3.3.1</version>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
@@ -241,36 +241,27 @@
 
     <!-- End -->
 
+    <!-- Logging -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.30</version>
+      <version>1.7.32</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j-impl</artifactId>
-      <version>2.14.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-api</artifactId>
-      <version>2.16.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-core</artifactId>
-      <version>2.14.0</version>
-    </dependency>
-
+    <!-- Test scoped -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.13.1</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+      <version>2.16.0</version>
+      <scope>test</scope>
+    </dependency>
+
   </dependencies>
 
 </project>
