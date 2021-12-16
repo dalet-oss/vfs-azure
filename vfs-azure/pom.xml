@@ -55,6 +55,11 @@
     <revision>DEV</revision>
   </properties>
 
+  <!-- To check for plugin updates, uncomment the below and run `mvn org.codehaus.mojo:versions-maven-plugin:2.8.1:display-plugin-updates` -->
+<!--  <prerequisites>-->
+<!--    <maven>3.3.9</maven>  &lt;!&ndash; This is the version used by Travis &ndash;&gt;-->
+<!--  </prerequisites>-->
+
   <build>
     <plugins>
       <plugin>
@@ -130,7 +135,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.6</version>
+            <version>3.0.1</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
