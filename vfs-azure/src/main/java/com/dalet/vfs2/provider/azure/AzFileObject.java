@@ -269,12 +269,17 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
         String path = fileName.getPath();
 
-        if (path.startsWith(SLASH)) {
-            path = path.substring(1);
+        if (path.equals(SLASH)) {
+            path = ""; //root path
         }
+        else {
+            if (path.startsWith(SLASH)) {
+                path = path.substring(1);
+            }
 
-        if (!path.endsWith(SLASH)) {
-            path = path + SLASH;
+            if (!path.endsWith(SLASH)) {
+                path = path + SLASH;
+            }
         }
 
         Iterable<BlobItem> blobs = blobContainerAsyncClient.listBlobsByHierarchy(path).toIterable();
