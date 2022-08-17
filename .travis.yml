@@ -19,8 +19,7 @@ deploy:
 notifications:
   email:
     recipients:
-      - amor@dalet.com
-      - aprajapati@dalet.com
+      - lspiteri@dalet.com
       - nsmith@dalet.com
       - olockwood@dalet.com
     on_success: change
