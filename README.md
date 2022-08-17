@@ -16,7 +16,7 @@ maintain this not as a fork of the original project but as a project in its own 
 ## Builds, releases etc.
 
 This project is built using Travis CI.
-[![Build Status](https://travis-ci.com/dalet-oss/vfs-azure.svg?branch=master)](https://travis-ci.com/dalet-oss/vfs-azure)
+[![Build Status](https://app.travis-ci.com/dalet-oss/vfs-azure.svg?branch=master)](https://app.travis-ci.com/dalet-oss/vfs-azure)
 
 Published artifacts are available on Maven Central as `com.github.dalet-oss:vfs-azure`.
 
