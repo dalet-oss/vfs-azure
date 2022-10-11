@@ -65,10 +65,11 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
     protected static final long MEGABYTES_TO_BYTES_MULTIPLIER = (int) Math.pow(2.0, 20.0);
 
-    protected static final int DEFAULT_UPLOAD_BLOCK_SIZE_MB = 4;
+    // Increased default size : Fix for FLEX-64152
+    protected static final int DEFAULT_UPLOAD_BLOCK_SIZE_MB = 8;
     private static final int TWENTY_FOUR_HOURS_IN_SEC = 24 * 60 * 60;
 
-    private static final long STREAM_BUFFER_SIZE_MB = 4 * MEGABYTES_TO_BYTES_MULTIPLIER;
+    private static final long STREAM_BUFFER_SIZE_MB = DEFAULT_UPLOAD_BLOCK_SIZE_MB * MEGABYTES_TO_BYTES_MULTIPLIER;
     private static final long BLOB_COPY_THRESHOLD_MB = 256 * MEGABYTES_TO_BYTES_MULTIPLIER;
 
     private static final int AZURE_MAX_BLOCKS = 50000;

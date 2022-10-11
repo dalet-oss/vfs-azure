@@ -554,7 +554,8 @@ public class AzFileProviderTest {
 
             // 250 GB
             blockSize = fileObject.getBlockSize((250L * 1024L) * AzFileObject.MEGABYTES_TO_BYTES_MULTIPLIER);
-            assertEquals(5368709, blockSize);
+            assertEquals(AzFileObject.DEFAULT_UPLOAD_BLOCK_SIZE_MB * AzFileObject.MEGABYTES_TO_BYTES_MULTIPLIER, blockSize);
+
         }
         catch (FileSystemException e) {
             fail();
