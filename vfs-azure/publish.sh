@@ -1,5 +1,5 @@
-echo "Determining version number for publication"
-echo "Looking for an existing release tag against this commit"
+echo 'Determining version number for publication'
+echo 'Looking for an existing release tag against this commit'
 
 VERSION=$(git describe --tags --match release/* --exact-match 2>&1)
 if [ $? -ne 0 ]
@@ -23,9 +23,18 @@ if [ $status -eq 200 ]
 then
   echo 'Version already available on Maven Central.  This must be a rebuild; nothing to do here.'
 else
+  echo 'Version not already available on Maven Central'
+
   # Decrypt the gpg key used for signing
-  openssl aes-256-cbc -K $encrypted_a559f7c88919_key -iv $encrypted_a559f7c88919_iv -in secret.gpg.enc -out secret.gpg -d
+  echo 'Decrypting the GPG key used for signing'
+  openssl aes-256-cbc -K ${SONATYPE_GPGKEY_FILE_ENCRYPTION_KEY} -iv ${SONATYPE_GPGKEY_FILE_ENCRYPTION_IV} -in secret.gpg.enc -out secret.gpg -d
   export GPG_TTY=$(tty)
+  if [ ! -f secret.gpg ]
+  then
+    echo 'Decryption failed; bail out'
+    exit 1
+  fi
+  echo 'Decryption successful'
 
   # Work around some nonsense on the specific version of GPG that comes with Ubuntu - see https://www.fluidkeys.com/tweak-gpg-2.1.11/
   echo 'allow-loopback-pinentry' >> ~/.gnupg/gpg-agent.conf

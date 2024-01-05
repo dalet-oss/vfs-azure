@@ -1,0 +1,43 @@
+name: 'CI Build'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [ opened, reopened, edited ]
+    branches:
+      - master
+
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: false
+
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: vfs-azure
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java and Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+          cache: 'maven'
+          cache-dependency-path: 'vfs-azure/pom.xml'
+
+      - name: Compile
+        run: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+
+      - name: Run tests
+        run: mvn test -B
+        env:
+          AZURE_ACCOUNT_NAME: ${{ vars.AZURE_ACCOUNT_NAME }}
+          AZURE_ACCOUNT_KEY: ${{ secrets.AZURE_ACCOUNT_KEY }}
+          AZURE_TEST0001_CONTAINER_NAME: ${{ vars.AZURE_TEST0001_CONTAINER_NAME }}

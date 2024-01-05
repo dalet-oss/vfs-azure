@@ -1,3 +1,6 @@
+[![CI Build](https://github.com/dalet-oss/vfs-azure/actions/workflows/ci-build.yml/badge.svg)](https://github.com/dalet-oss/vfs-azure/actions/workflows/ci-build.yml) [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.dalet-oss/vfs-azure/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.dalet-oss/vfs-azure) [![Licence](https://img.shields.io/hexpm/l/plug.svg)](https://github.com/dalet-oss/vfs-azure/blob/master/LICENSE)
+---
+
 # vfs-azure
 
 Azure provider for Apache Commons VFS - http://commons.apache.org/proper/commons-vfs/
@@ -15,8 +18,12 @@ maintain this not as a fork of the original project but as a project in its own 
 
 ## Builds, releases etc.
 
-This project is built using Travis CI.
-[![Build Status](https://app.travis-ci.com/dalet-oss/vfs-azure.svg?branch=master)](https://app.travis-ci.com/dalet-oss/vfs-azure)
+This project is built using Github Actions.
+
+-  All pushes to the `master` branch trigger the [![CI Build](https://github.com/dalet-oss/vfs-azure/actions/workflows/ci-build.yml/badge.svg)](https://github.com/dalet-oss/vfs-azure/actions/workflows/ci-build.yml)
+   workflow.
+-  All pushes of Git tags matching `release/*` trigger the [![CI Publish to Maven Central](https://github.com/dalet-oss/vfs-azure/actions/workflows/ci-publish.yml/badge.svg?branch=master&event=push)](https://github.com/dalet-oss/vfs-azure/actions/workflows/ci-publish.yml)
+   workflow.
 
 Published artifacts are available on Maven Central as `com.github.dalet-oss:vfs-azure`.
 
@@ -28,6 +35,7 @@ For the latest version, see https://github.com/dalet-oss/vfs-azure/tags.
 -  To publish artifacts, it is necessary to specify a version number by adding an appropriate Git tag to `HEAD` with an
    appropriate prefix.  For example, tagging HEAD with `release/1.3.8` will cause version `1.3.8` to be published on
    the next build.
+
 
 
 ## Documentation
