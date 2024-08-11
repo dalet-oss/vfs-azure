@@ -51,6 +51,7 @@ import java.net.URL;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -348,7 +349,14 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
             return 0;
         }
 
-        return getBlobProperties().getLastModified().toEpochSecond();
+        return epocToMilli(getBlobProperties().getLastModified());
+    }
+
+    private long epocToMilli(OffsetDateTime offsetDateTime) {
+
+        Date date = Date.from(offsetDateTime.toInstant());
+
+        return date.getTime();
     }
 
 
