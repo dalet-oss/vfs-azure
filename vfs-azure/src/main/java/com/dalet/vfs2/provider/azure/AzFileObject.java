@@ -348,7 +348,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
             return 0;
         }
 
-        return getBlobProperties().getLastModified().toEpochSecond();
+        return getBlobProperties().getLastModified().toInstant().toEpochMilli();
     }
 
 
