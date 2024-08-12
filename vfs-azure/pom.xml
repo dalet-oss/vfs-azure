@@ -50,9 +50,9 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
     <revision>DEV</revision>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
   </properties>
 
   <!-- To check for plugin updates, uncomment the below and run `mvn org.codehaus.mojo:versions-maven-plugin:2.8.1:display-plugin-updates` -->
