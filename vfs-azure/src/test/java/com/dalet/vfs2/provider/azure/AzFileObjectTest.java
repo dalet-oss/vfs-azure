@@ -4,9 +4,9 @@ import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.models.BlobProperties;
 import org.apache.commons.vfs2.provider.AbstractFileName;
+import org.apache.commons.vfs2.provider.AbstractFileSystem;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Field;
 import java.time.OffsetDateTime;
@@ -27,7 +27,7 @@ public class AzFileObjectTest {
 
 
     @BeforeClass
-    public static void setup() {
+    public static void setup() throws Exception {
 
         BlobContainerClient containerClient = mock(BlobContainerClient.class);
 
@@ -36,10 +36,9 @@ public class AzFileObjectTest {
         when(fileName.getPath()).thenReturn("test/test.jpg");
         when(containerClient.getBlobClient("test/test.jpg")).thenReturn(blobClient);
 
-        Field useCount = ReflectionUtils.findField(AzFileSystem.class, "useCount");
-        assert useCount != null;
+        Field useCount = AbstractFileSystem.class.getDeclaredField("useCount");
         useCount.setAccessible(true);
-        ReflectionUtils.setField(useCount, fileSystem, new AtomicLong());
+        useCount.set(fileSystem, new AtomicLong());
     }
 
 
@@ -56,7 +55,7 @@ public class AzFileObjectTest {
 
 
     @Test
-    public void test() {
+    public void testGetLastModifiedTime() {
 
         long currentTime = System.currentTimeMillis();
 
