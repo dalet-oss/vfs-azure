@@ -349,14 +349,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
             return 0;
         }
 
-        return epocToMilli(getBlobProperties().getLastModified());
-    }
-
-    private long epocToMilli(OffsetDateTime offsetDateTime) {
-
-        Date date = Date.from(offsetDateTime.toInstant());
-
-        return date.getTime();
+        return getBlobProperties().getLastModified().toInstant().toEpochMilli();
     }
 
 
