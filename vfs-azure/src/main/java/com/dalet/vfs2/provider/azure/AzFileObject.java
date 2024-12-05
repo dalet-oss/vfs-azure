@@ -337,6 +337,49 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
 
     /**
+     * Override delete method of VFS layer to handle folder delete scenario. In order to remove a folder we shall remove
+     * imaginary file.
+     */
+    @Override
+    public boolean delete() throws FileSystemException {
+
+        if (FileType.IMAGINARY != doGetType()) {
+            return super.delete();
+        }
+
+        try {
+            //Handle removal of imaginary file from file cache
+            this.handleDelete();
+
+            // Handle removing of an imaginary file
+            // It is a file created to represent the folder in virtual file system
+            // To delete an imaginary file we need to call delete call of azure blob client with parent path!
+            String name = getName().getParent().getPath();
+
+            //Path should not start with slash
+            if (name.startsWith(SLASH)) {
+                name = name.substring(1);
+            }
+
+            //Folder path should always end with slash
+            if (!name.endsWith(SLASH)) {
+                name = name + SLASH;
+            }
+
+            BlobClient client = blobContainerClient.getBlobClient(name);
+            client.delete();
+        }
+        catch (Exception e) {
+            //Imaginary removal is not a critical, it should not prevent removal of other children folder delete performed.
+
+            log.warn("Could not delete {} imaginary file", getName(), e);
+        }
+
+        return true;
+    }
+
+
+    /**
      * Callback for handling the <code>getLastModifiedTime()</code> Commons VFS API call.
      *
      * @return Time since the file has last been modified
