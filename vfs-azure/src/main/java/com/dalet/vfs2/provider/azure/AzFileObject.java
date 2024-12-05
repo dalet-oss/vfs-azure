@@ -338,8 +338,8 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
     /**
      * Override delete method of VFS layer to handle folder delete scenario. In some cases we create imaginary file (file with
-     * same name as folder and zero byte) to physical representation of folder. So while removing the folder we shall handle
-     * the case of folder delete instead of imaginary file itself.
+     * same name as folder and zero byte) for physical representation of folder. So while removing the imaginary file we shall
+     * handle the case of folder delete instead of imaginary file itself.
      */
     @Override
     public boolean delete() throws FileSystemException {
