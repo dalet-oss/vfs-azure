@@ -337,8 +337,9 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
 
     /**
-     * Override delete method of VFS layer to handle folder delete scenario. In order to remove a folder we shall remove
-     * imaginary file.
+     * Override delete method of VFS layer to handle folder delete scenario. In some cases we create imaginary file (file with
+     * same name as folder and zero byte) to physical representation of folder. So while removing the folder we shall handle
+     * the case of folder delete instead of imaginary file itself.
      */
     @Override
     public boolean delete() throws FileSystemException {
@@ -370,7 +371,8 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
             client.delete();
         }
         catch (Exception e) {
-            //Imaginary removal is not a critical, it should not prevent removal of other children folder delete performed.
+            //Imaginary file removal is not a critical, it should not prevent removal of other files as part of folder
+            //removal operations.
 
             log.warn("Could not delete {} imaginary file", getName(), e);
         }
