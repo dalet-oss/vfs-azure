@@ -32,6 +32,7 @@ import com.azure.storage.blob.sas.BlobSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.blob.specialized.BlobOutputStream;
 import com.azure.storage.common.sas.SasProtocol;
+import org.apache.commons.vfs2.FileName;
 import org.apache.commons.vfs2.FileNotFolderException;
 import org.apache.commons.vfs2.FileObject;
 import org.apache.commons.vfs2.FileSelector;
@@ -340,6 +341,23 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
      * Override delete method of VFS layer to handle folder delete scenario. In some cases we create imaginary file (file with
      * same name as folder and zero byte) for physical representation of folder. So while removing the imaginary file we shall
      * handle the case of folder delete instead of imaginary file itself.
+     *
+     * Example:
+     * Folder Structure
+     *  folder-one/sub-folder-one/
+     *  ...folder-one/sub-folder-one/file-one.jpg -> (file type)
+     *  ...folder-one/sub-folder-one/file-tow.jpg -> (file type)
+     *  ...folder-one/sub-folder-one/sub-folder-one/ -> (imaginary type)
+     *
+     * - Now when someone who want to delete entire folder they would make call like delete('folder-one/sub-folder-one/')
+     * - The VFS layer get children and make delete call one by one for each file.
+     * - So when a call made to delete 'folder-one/sub-folder-one/sub-folder-one/' imaginary file it does nothing since exists()
+     * check for it returns false!
+     * - We override this method to handle that case
+     * - delete call of Azure for 'folder-one/sub-folder-one/sub-folder-one/' fails too since that is imaginary file
+     * - We need to make delete call by its parent path, which is 'folder-one/sub-folder-one/' -> this works
+     * - Delete by parent path does not remove all files, it simply deletes the imaginary file exists with the same name as
+     * folder name!
      */
     @Override
     public boolean delete() throws FileSystemException {
@@ -352,23 +370,27 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
             //Handle removal of imaginary file from file cache
             this.handleDelete();
 
-            // Handle removing of an imaginary file
-            // It is a file created to represent the folder in virtual file system
-            // To delete an imaginary file we need to call delete call of azure blob client with parent path!
-            String name = getName().getParent().getPath();
+            //Check the imaginary file (zero byte size file) belong to the folder not
+            if (isZeroByteFile(getName())) {
 
-            //Path should not start with slash
-            if (name.startsWith(SLASH)) {
-                name = name.substring(1);
+                // Handle removing of an imaginary file
+                // It is a file created to represent the folder in virtual file system
+                // To delete an imaginary file we need to call delete call of azure blob client with parent path!
+                String name = getName().getParent().getPath();
+
+                //Path should not start with slash
+                if (name.startsWith(SLASH)) {
+                    name = name.substring(1);
+                }
+
+                //Folder path should always end with slash
+                if (!name.endsWith(SLASH)) {
+                    name = name + SLASH;
+                }
+
+                BlobClient client = blobContainerClient.getBlobClient(name);
+                client.delete();
             }
-
-            //Folder path should always end with slash
-            if (!name.endsWith(SLASH)) {
-                name = name + SLASH;
-            }
-
-            BlobClient client = blobContainerClient.getBlobClient(name);
-            client.delete();
         }
         catch (Exception e) {
             //Imaginary file removal is not a critical, it should not prevent removal of other files as part of folder
@@ -378,6 +400,19 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
         }
 
         return true;
+    }
+
+
+    /**
+     * Returns true if path of the given FileName is like `folder-one/folder-two/folder-two`
+     */
+    private boolean isZeroByteFile(FileName name) {
+
+        String[] names = name.getPath().split(SLASH);
+
+        int len = names.length;
+
+        return len >= 2 && names[len - 1].equals(names[len - 2]);
     }
 
 
