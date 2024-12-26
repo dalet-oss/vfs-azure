@@ -517,7 +517,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
                 FileType srcFileType = srcFile.getType();
 
-                if (FileType.FOLDER == srcFileType) {
+                if (!srcFileType.hasContent()) {
                     continue;
                 }
 
