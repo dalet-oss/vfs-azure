@@ -52,8 +52,10 @@ import java.net.URL;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -84,6 +86,7 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
     private final BlobContainerAsyncClient blobContainerAsyncClient;
     private BlobClient blobClient;
     private BlobProperties blobProperties;
+    private Map<String, String> blobTags;
 
     private FileType fileType = null;
     private boolean isAttached = false;
@@ -139,6 +142,63 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
         blobProperties = null;
         isAttached = false;
         fileType = null;
+    }
+
+    @Override
+    protected void doSetAttribute(String attrName, Object value) throws Exception {
+        doAttach();
+
+        if (attrName.startsWith("metadata.")) {
+            String metadataKey = attrName.substring("metadata.".length());
+            Map<String, String> metadata = getBlobProperties().getMetadata();
+            metadata.put(metadataKey, value.toString());
+            blobClient.setMetadata(metadata);
+            blobProperties = null; // Force refresh on next access
+        }
+        else if (attrName.startsWith("index.")) {
+            String tagKey = attrName.substring("index.".length());
+            Map<String, String> tags = getBlobTags();
+            tags.put(tagKey, value.toString());
+            blobClient.setTags(tags);
+            blobTags = null; // Force refresh on next access
+        }
+        else {
+            throw new FileSystemException("metadata.* and index.* attributes supported");
+        }
+    }
+
+    @Override
+    protected void doRemoveAttribute(String attrName) throws Exception {
+        doAttach();
+
+        if (attrName.startsWith("metadata.")) {
+            String metadataKey = attrName.substring("metadata.".length());
+            Map<String, String> metadata = getBlobProperties().getMetadata();
+            metadata.remove(metadataKey);
+            blobClient.setMetadata(metadata);
+            blobProperties = null; // Force refresh on next access
+        }
+        else if (attrName.startsWith("index.")) {
+            String tagKey = attrName.substring("index.".length());
+            Map<String, String> tags = getBlobTags();
+            tags.remove(tagKey);
+            blobClient.setTags(tags);
+            blobTags = null; // Force refresh on next access
+        }
+        else {
+            throw new FileSystemException("metadata.* and index.* attributes supported");
+        }
+    }
+
+    @Override
+    protected Map<String, Object> doGetAttributes() throws Exception {
+        Map<String, Object> attributes = new HashMap<>();
+        getBlobProperties().getMetadata().entrySet()
+                .forEach(e -> attributes.put("metadata." + e.getKey(), e.getValue()));
+        getBlobTags().entrySet()
+                .forEach(e -> attributes.put("index." + e.getKey(), e.getValue()));
+
+        return attributes;
     }
 
 
@@ -726,10 +786,21 @@ public class AzFileObject extends AbstractFileObject<AzFileSystem> {
 
         if (blobProperties == null) {
             doAttach();
-            blobProperties = blobClient.getProperties();
+            blobProperties = this.blobClient.getProperties();
         }
 
         return blobProperties;
+    }
+
+
+    private Map<String, String> getBlobTags() {
+
+        if (blobTags == null) {
+            doAttach();
+            blobTags = this.blobClient.getTags();
+        }
+
+        return blobTags;
     }
 
 }
