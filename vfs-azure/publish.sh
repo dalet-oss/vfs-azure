@@ -45,6 +45,6 @@ else
   touch /tmp/foo.txt
   gpg2 --pinentry-mode=loopback --passphrase ${SONATYPE_GPGKEY_PASSPHRASE} --sign /tmp/foo.txt
 
-  # Build, sign and publish the artifacts
-  mvn -Prelease deploy -DskipTests -Drevision=${VERSION} -Dgpg.executable=gpg2 -Dgpgkey.passphrase=${SONATYPE_GPGKEY_PASSPHRASE}
+  # Build, sign and publish the artifacts to Maven Central Portal
+  mvn -ntp -Prelease deploy -DskipTests -Drevision=${VERSION} -Dgpg.executable=gpg2 -Dgpgkey.passphrase=${SONATYPE_GPGKEY_PASSPHRASE}
 fi
